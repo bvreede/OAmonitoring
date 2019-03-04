@@ -1,6 +1,9 @@
 ## load libraries
 library(readr)
 library(readxl)
+library(stringr)
+library(jsonlite)
+library(httr)
 
 
 ## functions
@@ -33,8 +36,22 @@ clean_doi <- function(column){
   column <- gsub('doi.org/','',column) #remove doi.org/ from DOI
   column <- gsub('\\s+','',column) #remove spaces from DOI
   column <- tolower(column) #Change DOI to lowercase only
+  column <- str_replace(column,",.+","") #remove duplicate DOIs separated with a comma
 }
 
+# collecting DOI results from Unpaywall using their REST API
+upw_api <- function(doi){
+  # compile query to send to unpaywall
+  api <- "api.unpaywall.org/"
+  email <- "?email=b.m.i.vreede@uu.nl"
+  query <- paste0(api,doi,email)
+  result <- GET(query)
+  # resolve query results and transform to a line that can be added to a df
+  result_txt <- content(result, as="text",encoding="UTF-8")
+  result_line <- fromJSON(result_txt,flatten=T)$results
+  result_line$reported_noncompliant_copies <- NULL # this is a list that will cause conflicts later on
+  return(result_line)
+}
 
 
 #### LOAD AND CLEAN DATA ####
@@ -123,6 +140,38 @@ vsnu_doi <- vsnu$DOI[!is.na(vsnu$DOI)]
 pure_uu$VSNU_doi_match <- pure_uu$doi%in%vsnu_doi
 pure_umcu$VSNU_doi_match <- pure_umcu$doi%in%vsnu_doi
 
+## Step 3: Unpaywall
+# generate a database with unpaywall data using their REST API
+
+alldois <- union(pure_uu$doi[!is.na(pure_uu$doi)], # all pure_uu dois without NA
+                 pure_umcu$doi[!is.na(pure_umcu$doi)]) # all UMCU dois without NA
+
+unpaywall <- NULL
+counter <- 1
+
+for(d in alldois[101:500]){
+  print(paste("Unpaywall query: running doi", counter, "of", length(alldois)))
+  counter <- counter +1
+  upw_entry <- upw_api(d)
+  # check if the entries match in length
+  if(!is.null(unpaywall)){
+    if(length(upw_entry) == dim(unpaywall)[2]){
+    unpaywall <- rbind(unpaywall,upw_entry)
+    } else{
+    print(paste("Could not save:",upw_entry))
+    } 
+  } else{
+    unpaywall <- rbind(unpaywall,upw_entry)
+  }
+}
+
+
+# save unpaywall data
+today <- as.character(Sys.Date())
+upwname <- paste0("data/unpaywall_",today,".csv")
+write_csv(unpaywall,upwname)
+
+
 # Step 3: get Unpaywall data
 #We need to feed the DOI's to http://unpaywall.org/products/simple-query-tool
 #Get the DOIs in a list to paste in Unpaywall data search
@@ -136,6 +185,10 @@ unpaywall_umcu <- read.csv("unpaywall_umcu.csv")
 unpaywall_umcu$best_oa_host <- as.character(unpaywall_umcu$best_oa_host)
 
 # Step 4: Add the Unpaywall results to the pure and scopus files
+
+
+
+
 
 # edit the column name for doi
 names(pure_uu)[names(pure_uu) == "Electronic version(s) of this work > DOI (Digital Object Identifier)-7"] <- "doi"
