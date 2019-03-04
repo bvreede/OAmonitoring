@@ -1,87 +1,83 @@
 ## load libraries
 library(readr)
+library(readxl)
 
 
-## LOAD AND CLEAN DATA ##
-
-# This project takes publication data from a single year at Utrecht University, and determines per article its open access status, using various sources available. It uses peer reviewed journal articles registered in PURE at UU and UMCU as input.
-
-# First load the UU Pure Data
-pure_uu <- read_csv2("PURE-UU-2017-20180314.csv")
-pure_uu <- as.data.frame(pure_uu)
-
-# Set ID as character, so that it will not be treated as a numeral
-pure_uu$`Id-1`<- as.character(pure_uu$`Id-1`)
-
-# Set organisational unit, ISSN and OA status as factors because they are fixed variables which we want to analyze.
-pure_uu$`Authors > Organisations > Organisational unit-0`<- as.factor(pure_uu$`Authors > Organisations > Organisational unit-0`)
-pure_uu$`Journal > ISSN-5`<- as.factor(pure_uu$`Journal > ISSN-5`)
-pure_uu$`Open Access status-8`<- as.factor(pure_uu$`Open Access status-8`)
-
-
-# We should check if all required organisational units are present in the data. 
-## IS THERE A BETTER METHOD THAN SUMMARY?
-
-# Required are:
-# Dep Aardwetenschappen
-# Dep Bestuurs- en Organisatiewetenschap
-# Dep Biologie
-# Dep Farmaceutische wetenschappen
-# Dep Fysische Geografie
-# Dep Informatica
-# Dep Innovatie- Milieu- en Energiewet.
-# Dep Natuur & Sterrenkunde
-# Dep Rechtsgeleerdheid
-# Dep Sociale Geografie en Planologie
-# Dep USE
-# Dep Wiskunde
-# Faculteit Diergeneeskunde
-# Faculteit Geesteswetenschappen
-# Faculteit Sociale Wetenschappen
-
-# As you can see below, Dep Aardwetenschappen, Dep Fysische Geografie, Dep Innovatie- Milieu- en Energiewet. and Dep Sociale Geografie en Planologie are missing from pure_uu, while Faculteit Geowetenschappen is included in pure_uu 
-summary(pure_uu$`Authors > Organisations > Organisational unit-0`)
+## functions
+department_check <- function(orgs){
+  # collect all the organisation names
+  orgnames <- names(summary(orgs))
+  # verify if last year's departments are all present.
+  departments <-  c("Dep Aardwetenschappen","Dep Bestuurs- en Organisatiewetenschap","Dep Biologie",
+                    "Dep Fysische Geografie","Dep GeoLab","Dep Informatica","Dep Natuurkunde",
+                    "Dep of Sustainable Development","Dep Rechtsgeleerdheid","Dep Scheikunde",
+                    "Dep Sociale Geografie en Planologie","Dep USE","Dep Wiskunde","Dep Innovatie- Milieu- en Energiewet",
+                    "Faculteit Betawetenschappen","Faculteit Diergeneeskunde","Faculteit Geesteswetenschappen",
+                    "Faculteit Geowetenschappen","Faculteit REBO","Faculteit Sociale Wetenschappen" )
+  for(d in departments){
+    if(!is.element(d,orgnames)){
+      print(paste("Missing from dataset:",d))
+    }
+  }
+}
 
 
-# MISSING FROM PIPELINE BARBARA!
-# Before we match data, we will have to clean the DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
 
-#remove spaces from ISSN
-pure_uu$`Journal > ISSN-5` <- gsub('\\s+','',pure_uu$`Journal > ISSN-5`)
-#remove - from ISSN
-pure_uu$`Journal > ISSN-5` <- gsub('-','',pure_uu$`Journal > ISSN-5`)
-#remove https:// from DOI
-pure_uu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-7` <- gsub('https://','',pure_uu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-7`)
-#remove doi.org/ from DOI
-pure_uu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-7` <- gsub('doi.org/','',pure_uu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-7`)
-#remove spaces from DOI
-pure_uu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-7` <- gsub('\\s+','',pure_uu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-7`)
-#Change DOI to lowercase only
-pure_uu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-7` <- tolower(pure_uu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-7`)
+#### LOAD AND CLEAN DATA ####
 
-# Then load the UMCU Pure Data
-pure_umcu <- read_csv2("PURE-UMCU-2017-20180313.csv")
-pure_umcu <- as.data.frame(pure_umcu)
+## UU data - from PURE
+pure_uu <- read_excel("data/UU-Monitoring_OA-2018-basislijst-report_3119.xls")
+pure_umcu <- read_excel("data/UMC-Monitoring_OA-2018-basislijst-report_3119.xls")
+
+## Renaming columns so they will not have to be adjusted every time we run the script
+colnames(pure_uu)[colnames(pure_uu) == 'Contributors > Organisations > Organisational unit-0'] <- "org_unit"
+colnames(pure_uu)[colnames(pure_uu) == 'ID-1'] <- "pure_id"
+colnames(pure_uu)[colnames(pure_uu) == 'Title of the contribution in original language-2'] <- "title"
+colnames(pure_uu)[colnames(pure_uu) == 'Journal > ISSN-5'] <- "issn"
+colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work > DOI (Digital Object Identifier)-7'] <- "doi"
+colnames(pure_uu)[colnames(pure_uu) == 'Open Access status-8'] <- "OA_status_pure"
+
+colnames(pure_umcu)[colnames(pure_umcu) == 'Organisations > Organisational unit-0'] <- "org_unit"
+colnames(pure_umcu)[colnames(pure_umcu) == 'ID-4'] <- "pure_id"
+colnames(pure_umcu)[colnames(pure_umcu) == 'Title of the contribution in original language-6'] <- "title"
+colnames(pure_umcu)[colnames(pure_umcu) == 'Journal > ISSN-7'] <- "issn"
+colnames(pure_umcu)[colnames(pure_umcu) == 'Electronic version(s) of this work > DOI (Digital Object Identifier)-9'] <- "doi"
+colnames(pure_umcu)[colnames(pure_umcu) == 'Open Access status-11'] <- "OA_status_pure"
+
+ 
+## Adjust data types
 
 # Set ID as character, so that it will not be treated as a numeral
-pure_umcu$`Id-0`<- as.character(pure_umcu$`Id-0`)
+pure_uu$pure_id <- as.character(pure_uu$pure_id)
+pure_umcu$pure_id <- as.character(pure_umcu$pure_id)
+
 # Set organisational unit, ISSN and OA status as factors because they are fixed variables which we want to analyze.
+pure_uu$org_unit <- as.factor(pure_uu$org_unit)
+pure_uu$issn <- as.factor(pure_uu$issn)
+pure_uu$OA_status_pure<- as.factor(pure_uu$OA_status_pure)
 
-pure_umcu$`Journal > ISSN-1`<- as.factor(pure_umcu$`Journal > ISSN-1`)
-pure_umcu$`Open Access status-7`<- as.factor(pure_umcu$`Open Access status-7`)
+pure_umcu$org_unit <- as.factor(pure_umcu$org_unit)
+pure_umcu$issn <- as.factor(pure_umcu$issn)
+pure_umcu$OA_status_pure<- as.factor(pure_umcu$OA_status_pure)
 
-#remove spaces from ISSN
-pure_umcu$`Journal > ISSN-1` <- gsub('\\s+','',pure_umcu$`Journal > ISSN-1`)
-#remove - from ISSN
-pure_umcu$`Journal > ISSN-1` <- gsub('-','',pure_umcu$`Journal > ISSN-1`)
-#remove https:// from DOI
-pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6` <- gsub('https://','',pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6`)
-#remove doi.org/ from DOI
-pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6` <- gsub('doi.org/','',pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6`)
-#remove spaces from DOI
-pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6` <- gsub('\\s+','',pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6`)
-#Change DOI to lowercase only
-pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6` <- tolower(pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6`)
+## Verify data (uu only)
+department_check(pure_uu$org_unit)
+
+## Clean data
+# clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
+pure_uu$issn <- gsub('\\s+','',pure_uu$issn) #remove spaces from ISSN
+pure_uu$issn <- gsub('-','',pure_uu$issn) #remove - from ISSN
+pure_uu$doi <- gsub('https://','',pure_uu$doi) #remove https:// from DOI
+pure_uu$doi <- gsub('doi.org/','',pure_uu$doi) #remove doi.org/ from DOI
+pure_uu$doi <- gsub('\\s+','',pure_uu$doi) #remove spaces from DOI
+pure_uu$doi <- tolower(pure_uu$doi) #Change DOI to lowercase only
+
+pure_umcu$issn <- gsub('\\s+','',pure_umcu$issn) #remove spaces from ISSN
+pure_umcu$issn <- gsub('-','',pure_umcu$issn) #remove - from ISSN
+pure_umcu$doi <- gsub('https://','',pure_umcu$doi) #remove https:// from DOI
+pure_umcu$doi <- gsub('doi.org/','',pure_umcu$doi) #remove doi.org/ from DOI
+pure_umcu$doi <- gsub('\\s+','',pure_umcu$doi) #remove spaces from DOI
+pure_umcu$doi <- tolower(pure_umcu$doi) #Change DOI to lowercase only
 
 
 
@@ -120,13 +116,13 @@ vsnu <- read.csv2("VSNU_OA_articles_20180917.csv")
 
 # Step 2: match the DOI with the VSNU list 
 vsnu_doi <- vsnu$DOI[is.na(vsnu$DOI)==FALSE]
-pure_uu$vsnu_doi_match <- pure_uu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-7`%in%vsnu_doi
+pure_uu$vsnu_doi_match <- pure_uu$doi%in%vsnu_doi
 pure_umcu$vsnu_doi_match <- pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6`%in%vsnu_doi
 
 # Step 3: get Unpaywall data
 #We need to feed the DOI's to http://unpaywall.org/products/simple-query-tool
 #Get the DOIs in a list to paste in Unpaywall data search
-write(pure_uu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-7`, file="dois_uu.txt")
+write(pure_uu$doi, file="dois_uu.txt")
 write(pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6`, file="dois_umcu.txt")
 
 # Load the resulting csv files
