@@ -21,6 +21,20 @@ department_check <- function(orgs){
   }
 }
 
+# cleaning DOIs and ISSN columns
+clean_issn <- function(column){
+  column <- gsub('\\s+','',column) #remove spaces from ISSN
+  column <- gsub('-','',column) #remove - from ISSN
+  return(column)
+}
+
+clean_doi <- function(column){
+  column <- gsub('https://','',column) #remove https:// from DOI
+  column <- gsub('doi.org/','',column) #remove doi.org/ from DOI
+  column <- gsub('\\s+','',column) #remove spaces from DOI
+  column <- tolower(column) #Change DOI to lowercase only
+}
+
 
 
 #### LOAD AND CLEAN DATA ####
@@ -28,6 +42,11 @@ department_check <- function(orgs){
 ## UU data - from PURE
 pure_uu <- read_excel("data/UU-Monitoring_OA-2018-basislijst-report_3119.xls")
 pure_umcu <- read_excel("data/UMC-Monitoring_OA-2018-basislijst-report_3119.xls")
+
+## Classification data
+doaj <- read_excel("data/2018-12-31-DOAJ-schoon.xlsx")
+vsnu <- read_csv("data/VSNU-DOIs.csv")
+
 
 ## Renaming columns so they will not have to be adjusted every time we run the script
 colnames(pure_uu)[colnames(pure_uu) == 'Contributors > Organisations > Organisational unit-0'] <- "org_unit"
@@ -43,6 +62,9 @@ colnames(pure_umcu)[colnames(pure_umcu) == 'Title of the contribution in origina
 colnames(pure_umcu)[colnames(pure_umcu) == 'Journal > ISSN-7'] <- "issn"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Electronic version(s) of this work > DOI (Digital Object Identifier)-9'] <- "doi"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Open Access status-11'] <- "OA_status_pure"
+
+colnames(doaj)[colnames(doaj) == 'Journal ISSN (print version)'] <- "issn"
+colnames(doaj)[colnames(doaj) == 'Journal EISSN (online version)'] <- "eissn"
 
  
 ## Adjust data types
@@ -65,59 +87,41 @@ department_check(pure_uu$org_unit)
 
 ## Clean data
 # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
-pure_uu$issn <- gsub('\\s+','',pure_uu$issn) #remove spaces from ISSN
-pure_uu$issn <- gsub('-','',pure_uu$issn) #remove - from ISSN
-pure_uu$doi <- gsub('https://','',pure_uu$doi) #remove https:// from DOI
-pure_uu$doi <- gsub('doi.org/','',pure_uu$doi) #remove doi.org/ from DOI
-pure_uu$doi <- gsub('\\s+','',pure_uu$doi) #remove spaces from DOI
-pure_uu$doi <- tolower(pure_uu$doi) #Change DOI to lowercase only
+pure_uu$issn <- clean_issn(pure_uu$issn)
+pure_uu$doi <- clean_doi(pure_uu$doi)
 
-pure_umcu$issn <- gsub('\\s+','',pure_umcu$issn) #remove spaces from ISSN
-pure_umcu$issn <- gsub('-','',pure_umcu$issn) #remove - from ISSN
-pure_umcu$doi <- gsub('https://','',pure_umcu$doi) #remove https:// from DOI
-pure_umcu$doi <- gsub('doi.org/','',pure_umcu$doi) #remove doi.org/ from DOI
-pure_umcu$doi <- gsub('\\s+','',pure_umcu$doi) #remove spaces from DOI
-pure_umcu$doi <- tolower(pure_umcu$doi) #Change DOI to lowercase only
+pure_umcu$issn <- clean_issn(pure_umcu$issn)
+pure_umcu$doi <- clean_doi(pure_umcu$doi)
+
+doaj$issn <- clean_issn(doaj$issn) 
+doaj$eissn <- clean_issn(doaj$eissn)
+
+vsnu$DOI <- clean_doi(vsnu$DOI)
 
 
+#### CLASSIFICATION PIPELINE ####
 
-## CLASSIFICATION PIPELINE ##
-#The pipeline tries to classify all publications according to its presence or absence in various check lists. In sequence:
-#1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). If the journal matches, the publication is Gold OA
-#2. match the DOI with a list obtained from VSNU. If the journal matches, the publication is Hybrid OA
-#3. obtain the OA status from Unpaywall. If the status is publisher, the publication is Hybrid OA. If the status is repository, the publication is Green OA.
+# The pipeline tries to classify all publications according to their presence in check lists. In sequence:
+## 1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). 
+##    If the journal matches, the publication is Gold OA
+## 2. match the DOI with a list obtained from VSNU. 
+##    If the journal matches, the publication is Hybrid OA
+## 3. obtain the OA status from Unpaywall. 
+##    If the status is publisher, the publication is Hybrid OA. 
+##    If the status is repository, the publication is Green OA.
 
-## Step 1a: Load the DOAJ Data
-# Source: On SURF Drive, OA Monitoring
-# Date: December 31st 2017
-# Content: all journals listed on DOAJ and therefore labeled as Full OA
-doaj <- read.csv2("DOAJ-20171231.csv")
+## Step 1: DOAJ ISSN matching
+doaj_issn <- union(doaj$issn[!is.na(doaj$issn)], # all DOAJ ISSN numbers from print, without NAs
+                   doaj$eissn[!is.na(doaj$eissn)]) # all DOAJ E-ISSN numbers, without NAs
 
-# step 1b: Extract ISSN's form DOAJ and add a column to UU_Pure that specifies TRUE/FALSE depending on a DOAJ ISSN matching to this publication
-#Extract ISSN's
-doaj_issn_print <- doaj$Journal.ISSN..print.version.[is.na(doaj$Journal.ISSN..print.version.)==FALSE]
-doaj_issn_online <- doaj$Journal.EISSN..online.version.[is.na(doaj$Journal.EISSN..online.version.)==FALSE]
-doaj_issn <- union(doaj_issn_online,doaj_issn_print)
-#remove spaces from ISSN
-doaj_issn <- gsub('\\s+','',doaj_issn)
-#remove - from ISSN
-doaj_issn <- gsub('-','',doaj_issn)
-#Add a column to Pure and Scopus
-pure_uu$DOAJ_ISSN_match <- pure_uu$`Journal > ISSN-5`%in%doaj_issn
-pure_umcu$DOAJ_ISSN_match <- pure_umcu$`Journal > ISSN-1`%in%doaj_issn
-scopus_utrecht$DOAJ_ISSN_match <- scopus_utrecht$ISSN%in%doaj_issn
+pure_uu$DOAJ_ISSN_match <- pure_uu$issn%in%doaj_issn
+pure_umcu$DOAJ_ISSN_match <- pure_umcu$issn%in%doaj_issn
 
-# Step 2a: Load VSNU data
-# Source: compiled from VSNU OA data on Surfdrive, OA Deals (2016 up until summer 2018)
-# Date: September 17th 2018
-# Content: Cumulative list of all OA articles published within the Netherlands as part of the VSNU OA deal, including DOI, publisher and publication year.
+## Step 2: VSNU DOI matching
+vsnu_doi <- vsnu$DOI[!is.na(vsnu$DOI)]
 
-vsnu <- read.csv2("VSNU_OA_articles_20180917.csv")
-
-# Step 2: match the DOI with the VSNU list 
-vsnu_doi <- vsnu$DOI[is.na(vsnu$DOI)==FALSE]
-pure_uu$vsnu_doi_match <- pure_uu$doi%in%vsnu_doi
-pure_umcu$vsnu_doi_match <- pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6`%in%vsnu_doi
+pure_uu$VSNU_doi_match <- pure_uu$doi%in%vsnu_doi
+pure_umcu$VSNU_doi_match <- pure_umcu$doi%in%vsnu_doi
 
 # Step 3: get Unpaywall data
 #We need to feed the DOI's to http://unpaywall.org/products/simple-query-tool
