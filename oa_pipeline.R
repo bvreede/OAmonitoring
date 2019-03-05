@@ -2,6 +2,7 @@
 library(readr)
 library(readxl)
 library(stringr)
+library(dplyr)
 library(jsonlite)
 library(httr)
 
@@ -53,6 +54,59 @@ upw_api <- function(doi){
   return(result_line)
 }
 
+# The following functions try to classify all publications according to their presence in check lists. In sequence:
+## 1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). 
+##    If the journal matches, the publication is Gold OA
+## 2. match the DOI with a list obtained from VSNU. 
+##    If the journal matches, the publication is Hybrid OA
+## 3. obtain the OA status from Unpaywall. 
+##    If the status is 'gold', the publication could be Gold OA (tbd)         ### OPTIONAL TBD ###
+##    If the status is 'bronze', the publication is Hybrid OA
+##    If the status is 'green', the publication is Green OA
+## 4. (optional) use existing Pure status                                     ### OPTIONAL TBD ###
+##    If the pure status is 'open', the publication is Green OA
+# NB in the classification pipeline these labels will be applied in sequence
+# Thus, e.g. if ISSN matches DOAJ but Unpaywall says 'green', the label will still be Gold OA.
+# The optional ("tbd") labels only exist in the second function (define_oa_broad)
+
+define_oa <- function(doaj,vsnu,upw){
+  ## DOAJ and VSNU
+  if(doaj){
+    return("GOLD")
+  } else if(vsnu){
+    return("HYBRID")
+  ## UNPAYWALL
+  } else if(is.na(upw)){
+    return("CLOSED")
+  } else if(upw=="bronze"|upw=="gold"){
+    return("HYBRID")
+  } else if(upw=="green"){
+    return("GREEN")
+  } 
+}
+
+define_oa_broad <- function(doaj,vsnu,upw,pure){
+  if(doaj){
+    ## DOAJ and VSNU tests
+    return("GOLD")
+  } else if(vsnu){
+    return("HYBRID")
+    ## UNPAYWALL 1: if it is NA, then check PURE or return closed
+  } else if(is.na(upw)){
+    if(pure=="Open"){
+      return("GREEN")}
+    else{
+      return("CLOSED")
+    }
+    ## UNPAYWALL 2
+  } else if(upw=="bronze"){
+    return("HYBRID")
+  } else if(upw=="green"){
+    return("GREEN")
+  } else if(upw=="gold"){
+    return("GOLD")
+  } 
+}
 
 #### LOAD AND CLEAN DATA ####
 
@@ -116,16 +170,8 @@ doaj$eissn <- clean_issn(doaj$eissn)
 vsnu$DOI <- clean_doi(vsnu$DOI)
 
 
-#### CLASSIFICATION PIPELINE ####
-
-# The pipeline tries to classify all publications according to their presence in check lists. In sequence:
-## 1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). 
-##    If the journal matches, the publication is Gold OA
-## 2. match the DOI with a list obtained from VSNU. 
-##    If the journal matches, the publication is Hybrid OA
-## 3. obtain the OA status from Unpaywall. 
-##    If the status is publisher, the publication is Hybrid OA. 
-##    If the status is repository, the publication is Green OA.
+#### OA LABELLING ####
+## Collect information that can later be used for the classification pipeline.
 
 ## Step 1: DOAJ ISSN matching
 doaj_issn <- union(doaj$issn[!is.na(doaj$issn)], # all DOAJ ISSN numbers from print, without NAs
@@ -142,153 +188,78 @@ pure_umcu$VSNU_doi_match <- pure_umcu$doi%in%vsnu_doi
 
 ## Step 3: Unpaywall
 # generate a database with unpaywall data using their REST API
-
+# use all DOIs as input
 alldois <- union(pure_uu$doi[!is.na(pure_uu$doi)], # all pure_uu dois without NA
                  pure_umcu$doi[!is.na(pure_umcu$doi)]) # all UMCU dois without NA
 
 unpaywall <- NULL
 counter <- 1
 
-for(d in alldois[101:500]){
-  print(paste("Unpaywall query: running doi", counter, "of", length(alldois)))
-  counter <- counter +1
+for(d in alldois[3001:length(alldois)]){
+  #print(paste("Unpaywall query: running doi", counter, "of", length(alldois)))
   upw_entry <- upw_api(d)
-  # check if the entries match in length
+  # check if the entries match the dataframe in length
   if(!is.null(unpaywall)){
     if(length(upw_entry) == dim(unpaywall)[2]){
     unpaywall <- rbind(unpaywall,upw_entry)
     } else{
-    print(paste("Could not save:",upw_entry))
+    print(paste("Issue with query",counter,": Could not save:",upw_entry))
     } 
   } else{
     unpaywall <- rbind(unpaywall,upw_entry)
   }
+  counter <- counter +1
 }
 
+## DOIS THAT GIVE PROBLEMS:
+# 10.14379/iodp.pr.371.2018 (number 2498)
+# 10.14379/iodp.pr.374.2018 (number 2350)
+# 10.1002/pds.4705 (number 4951)
 
 # save unpaywall data
 today <- as.character(Sys.Date())
 upwname <- paste0("data/unpaywall_",today,".csv")
 write_csv(unpaywall,upwname)
 
+# ensure unpaywall data is saved as factor
+unpaywall$evidence <- as.factor(unpaywall$evidence)
+unpaywall$free_fulltext_url <- as.factor(unpaywall$free_fulltext_url)
+unpaywall$license <- as.factor(unpaywall$license)
+unpaywall$oa_color <- as.factor(unpaywall$oa_color)
 
-# Step 3: get Unpaywall data
-#We need to feed the DOI's to http://unpaywall.org/products/simple-query-tool
-#Get the DOIs in a list to paste in Unpaywall data search
-write(pure_uu$doi, file="dois_uu.txt")
-write(pure_umcu$`Electronic version(s) of this work > DOI (Digital Object Identifier)-6`, file="dois_umcu.txt")
-
-# Load the resulting csv files
-unpaywall_uu <- read.csv("unpaywall_uu.csv")
-unpaywall_uu$best_oa_host <- as.character(unpaywall_uu$best_oa_host)
-unpaywall_umcu <- read.csv("unpaywall_umcu.csv")
-unpaywall_umcu$best_oa_host <- as.character(unpaywall_umcu$best_oa_host)
-
-# Step 4: Add the Unpaywall results to the pure and scopus files
+# merge pure with unpaywall
+uu_merge <- merge(pure_uu,unpaywall,by="doi", all.x=T, all.y=F)
+umcu_merge <- merge(pure_umcu,unpaywall,by="doi", all.x=T, all.y=F)
 
 
 
+#### CLASSIFICATION PIPELINE ####
+## apply the classification functions
+uu_merge <- mutate(uu_merge,
+                   OA_label_conservative=mapply(define_oa, DOAJ_ISSN_match, VSNU_doi_match, oa_color))
+umcu_merge <- mutate(umcu_merge,
+                   OA_label_conservative=mapply(define_oa, DOAJ_ISSN_match, VSNU_doi_match, oa_color))
+uu_merge <- mutate(uu_merge,
+                   OA_label_broad=mapply(define_oa_broad, DOAJ_ISSN_match, VSNU_doi_match, oa_color,OA_status_pure))
+umcu_merge <- mutate(umcu_merge,
+                   OA_label_broad=mapply(define_oa_broad, DOAJ_ISSN_match, VSNU_doi_match, oa_color,OA_status_pure))
+
+## turn the results into factors
+uu_merge$OA_label_conservative <- as.factor(uu_merge$OA_label_conservative)
+umcu_merge$OA_label_conservative <- as.factor(umcu_merge$OA_label_conservative)
+uu_merge$OA_label_broad <- as.factor(uu_merge$OA_label_broad)
+umcu_merge$OA_label_broad <- as.factor(umcu_merge$OA_label_broad)
 
 
-# edit the column name for doi
-names(pure_uu)[names(pure_uu) == "Electronic version(s) of this work > DOI (Digital Object Identifier)-7"] <- "doi"
-names(pure_umcu)[names(pure_umcu) == "Electronic version(s) of this work > DOI (Digital Object Identifier)-6"] <- "doi"
 
-# merge with unpaywall
-uu_merge <- merge(pure_uu,unpaywall_uu,by="doi", all.x=T, all.y=F)
-umcu_merge <- merge(pure_umcu,unpaywall_umcu,by="doi", all.x=T, all.y=F)
+#### RESULTING TABLES AND FIGURES ####
 
-
-#Add column to pure and scopus files with VSNU OA Status, as follows
-#if doaj_issn_match=TRUE: GOLD, if not
-#if vsnu_doi_match=TRUE: HYBRID, if not
-#if Unpaywall_host=publisher: HYBRID, if not
-#if Unpaywall_host=repository: GREEN, if not
-#CLOSED
-
-# function that takes input from:
-# - ISSN match
-# - VSNU match
-# - unpaywall host
-# and returns gold/hybrid/green/notOA
-
-define_oa <- function(refdb){
-  ldb <- dim(refdb)[1]
-  oalist <- NULL
-  for(i in 1:ldb){
-  if(is.na(refdb$DOAJ_ISSN_match[i])==FALSE){
-    if(refdb$DOAJ_ISSN_match[i]==TRUE){
-    oalist <- c(oalist,'GOLD')
-    next
-    }
-  }
-  if(is.na(refdb$vsnu_doi_match[i])==FALSE){
-    if(refdb$vsnu_doi_match[i]){
-      oalist <- c(oalist,'HYBRID')
-      next
-    }
-  }
-  if(is.na(refdb$best_oa_host[i])==FALSE){
-    if(refdb$best_oa_host[i]=='publisher'){
-      oalist <- c(oalist,'HYBRID')
-      next
-    }
-  }
-  if(is.na(refdb$best_oa_host[i])==FALSE){
-    if(refdb$best_oa_host[i]=='repository'){
-      oalist <- c(oalist,'GREEN')
-      next
-    }
-  }
-  oalist <- c(oalist,'NOT_OA')
-  }
-  return(oalist)
-}
-
-uu_merge$oa_status <- define_oa(uu_merge)
-uu_merge$oa_status <- as.factor(uu_merge$oa_status)
-
-umcu_merge$oa_status <- define_oa(umcu_merge)
-umcu_merge$oa_status <- as.factor(umcu_merge$oa_status)
-
-uu_table <- table(uu_merge$oa_status)
+uu_table <- table(uu_merge$OA_label_broad)
 uu_prop <- prop.table(uu_table)
 
-umcu_table <- table(umcu_merge$oa_status)
+umcu_table <- table(umcu_merge$OA_label_broad)
 umcu_prop <- prop.table(umcu_table)
 
-
-#For pure_uu
-pure_uu$vsnu_oa_status <- ifelse(
-  pure_uu$DOAJ_ISSN_match==TRUE,
-  'GOLD',
-  ifelse(
-    pure_uu$vsnu_doi_match==TRUE,
-    'HYBRID',
-    ifelse(
-      pure_uu$best_oa_host=='publisher',
-      'HYBRID', 
-      ifelse(
-        pure_uu$best_oa_host=='repository',
-        'GREEN',
-        'NOT_OA'))))
-pure_uu$vsnu_oa_status <- as.factor(pure_uu$vsnu_oa_status)
-
-#For pure_umcu
-pure_umcu$vsnu_oa_status <- ifelse(pure_umcu$DOAJ_ISSN_match==TRUE,'GOLD',ifelse(pure_umcu$vsnu_doi_match==TRUE,'HYBRID',ifelse(pure_umcu$Unpaywall_host=='publisher','HYBRID', ifelse(pure_umcu$Unpaywall_host=='repository','GREEN','NOT_OA'))))
-pure_umcu$vsnu_oa_status <- as.factor(pure_umcu$vsnu_oa_status)
-
-
-#Get first results 
-#Get VSNU status for UU, UMCU respectively
-
-table(pure_uu[c("vsnu_oa_status")])
-table(pure_umcu[c("vsnu_oa_status")])
-table(scopus_utrecht[c("vsnu_oa_status")])
-
-#Get Unpaywall results for UU, UMCU and Scopus respectively
-table(pure_uu[c("Unpaywall_host")])
-table(pure_umcu[c("Unpaywall_host")])
 
 
 
