@@ -47,4 +47,10 @@ Publications that meet the following two criteria must be checked manually for t
 
 ...
 
+# Future or bespoke use of this script
+When re-using this script, adjust the following things:
 
+- At the top of the script, adjust the file paths for your source data (use of a `data` folder is strongly recommended);
+- Consider that this script was written for two datasets (UU and UMCU); they are labeled as such in the script. If you have a single source file you may need to manually adjust the script to reflect this, however, you can also let us know if you want us to write a compatible version of this script;
+- In the `upw_api` function, adjust the email address to reflect the current user; 
+- In the 'unpaywall' section of 'OA labelling', choose 'api' or 'csv' for the variable `api_csv`, depending on whether you want to load existing unpaywall data ('csv'), or re-run the unpaywall analysis via their api ('api')
