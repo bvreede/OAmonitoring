@@ -5,7 +5,7 @@ library(stringr)
 library(dplyr)
 library(jsonlite)
 library(httr)
-
+library(magrittr)
 
 ## functions
 department_check <- function(orgs){
@@ -27,15 +27,15 @@ department_check <- function(orgs){
 
 # cleaning DOIs and ISSN columns
 clean_issn <- function(column){
-  column <- gsub('\\s+','',column) #remove spaces from ISSN
-  column <- gsub('-','',column) #remove - from ISSN
+  column <- str_replace(column,'\\s+','') #remove spaces from ISSN
+  column <- str_replace(column,'-','') #remove - from ISSN
   return(column)
 }
 
 clean_doi <- function(column){
-  column <- gsub('https://','',column) #remove https:// from DOI
-  column <- gsub('doi.org/','',column) #remove doi.org/ from DOI
-  column <- gsub('\\s+','',column) #remove spaces from DOI
+  column <- str_replace(column,'https://','') #remove https:// from DOI
+  column <- str_replace(column,'doi.org/','') #remove doi.org/ from DOI
+  column <- str_replace(column,'\\s+','') #remove spaces from DOI
   column <- tolower(column) #Change DOI to lowercase only
   column <- str_replace(column,",.+","") #remove duplicate DOIs separated with a comma
 }
@@ -50,7 +50,6 @@ upw_api <- function(doi){
   # resolve query results and transform to a line that can be added to a df
   result_txt <- content(result, as="text",encoding="UTF-8")
   result_line <- fromJSON(result_txt,flatten=T)$results
-  result_line$reported_noncompliant_copies <- NULL # this is a list that will cause conflicts later on
   return(result_line)
 }
 
@@ -60,34 +59,16 @@ upw_api <- function(doi){
 ## 2. match the DOI with a list obtained from VSNU. 
 ##    If the journal matches, the publication is Hybrid OA
 ## 3. obtain the OA status from Unpaywall. 
-##    If the status is 'gold', the publication could be Gold OA (tbd)         ### OPTIONAL TBD ###
-##    If the status is 'bronze', the publication is Hybrid OA
+##    If the status is 'gold' or 'bronze', the publication is Hybrid OA
 ##    If the status is 'green', the publication is Green OA
-## 4. (optional) use existing Pure status                                     ### OPTIONAL TBD ###
+## 4. use existing Pure status                                     
 ##    If the pure status is 'open', the publication is Green OA
 # NB in the classification pipeline these labels will be applied in sequence
 # Thus, e.g. if ISSN matches DOAJ but Unpaywall says 'green', the label will still be Gold OA.
-# The optional ("tbd") labels only exist in the second function (define_oa_broad)
 
-define_oa <- function(doaj,vsnu,upw){
-  ## DOAJ and VSNU
+define_oa <- function(doaj,vsnu,upw,pure){
+  ## DOAJ and VSNU: DOAJ means gold, VSNU deal list means hybrid
   if(doaj){
-    return("GOLD")
-  } else if(vsnu){
-    return("HYBRID")
-  ## UNPAYWALL
-  } else if(is.na(upw)){
-    return("CLOSED")
-  } else if(upw=="bronze"|upw=="gold"){
-    return("HYBRID")
-  } else if(upw=="green"){
-    return("GREEN")
-  } 
-}
-
-define_oa_broad <- function(doaj,vsnu,upw,pure){
-  if(doaj){
-    ## DOAJ and VSNU tests
     return("GOLD")
   } else if(vsnu){
     return("HYBRID")
@@ -98,15 +79,14 @@ define_oa_broad <- function(doaj,vsnu,upw,pure){
     else{
       return("CLOSED")
     }
-    ## UNPAYWALL 2
-  } else if(upw=="bronze"){
+    ## UNPAYWALL 2: resolve to hybrid or green
+  } else if(upw=="bronze"|upw=="gold"){ # indeed, we choose to label gold only confirmed DOAJ ISSN
     return("HYBRID")
   } else if(upw=="green"){
     return("GREEN")
-  } else if(upw=="gold"){
-    return("GOLD")
   } 
 }
+
 
 #### LOAD AND CLEAN DATA ####
 
@@ -141,17 +121,17 @@ colnames(doaj)[colnames(doaj) == 'Journal EISSN (online version)'] <- "eissn"
 ## Adjust data types
 
 # Set ID as character, so that it will not be treated as a numeral
-pure_uu$pure_id <- as.character(pure_uu$pure_id)
-pure_umcu$pure_id <- as.character(pure_umcu$pure_id)
+pure_uu$pure_id %<>% as.character
+pure_umcu$pure_id %<>% as.character
 
 # Set organisational unit, ISSN and OA status as factors because they are fixed variables which we want to analyze.
-pure_uu$org_unit <- as.factor(pure_uu$org_unit)
-pure_uu$issn <- as.factor(pure_uu$issn)
-pure_uu$OA_status_pure<- as.factor(pure_uu$OA_status_pure)
+pure_uu$org_unit %<>% as.factor
+pure_uu$issn %<>% as.factor
+pure_uu$OA_status_pure %<>% as.factor
 
-pure_umcu$org_unit <- as.factor(pure_umcu$org_unit)
-pure_umcu$issn <- as.factor(pure_umcu$issn)
-pure_umcu$OA_status_pure<- as.factor(pure_umcu$OA_status_pure)
+pure_umcu$org_unit %<>% as.factor
+pure_umcu$issn %<>% as.factor
+pure_umcu$OA_status_pure %<>% as.factor
 
 ## Verify data (uu only)
 department_check(pure_uu$org_unit)
@@ -187,45 +167,37 @@ pure_uu$VSNU_doi_match <- pure_uu$doi%in%vsnu_doi
 pure_umcu$VSNU_doi_match <- pure_umcu$doi%in%vsnu_doi
 
 ## Step 3: Unpaywall
+api_csv <- "api" #indicate here whether you want to load existing data or use the UPW api
+
 # generate a database with unpaywall data using their REST API
 # use all DOIs as input
 alldois <- union(pure_uu$doi[!is.na(pure_uu$doi)], # all pure_uu dois without NA
                  pure_umcu$doi[!is.na(pure_umcu$doi)]) # all UMCU dois without NA
 
-unpaywall <- NULL
-counter <- 1
+# mine unpaywall API for each DOI
+outlist <- list()
 
-for(d in alldois[3001:length(alldois)]){
-  #print(paste("Unpaywall query: running doi", counter, "of", length(alldois)))
-  upw_entry <- upw_api(d)
-  # check if the entries match the dataframe in length
-  if(!is.null(unpaywall)){
-    if(length(upw_entry) == dim(unpaywall)[2]){
-    unpaywall <- rbind(unpaywall,upw_entry)
-    } else{
-    print(paste("Issue with query",counter,": Could not save:",upw_entry))
-    } 
-  } else{
-    unpaywall <- rbind(unpaywall,upw_entry)
+for(i in seq_along(alldois)){
+  doi <- alldois[i]
+  if(api_csv=="api"){
+    res <- upw_api(doi)
+    outlist[[i]] <- res
   }
-  counter <- counter +1
 }
 
-## DOIS THAT GIVE PROBLEMS:
-# 10.14379/iodp.pr.371.2018 (number 2498)
-# 10.14379/iodp.pr.374.2018 (number 2350)
-# 10.1002/pds.4705 (number 4951)
+#unpaywall <- bind_rows(outlist)
+unpaywall <- read_csv("data/unpaywall_2019-03-05.csv")
 
 # save unpaywall data
 today <- as.character(Sys.Date())
 upwname <- paste0("data/unpaywall_",today,".csv")
-write_csv(unpaywall,upwname)
+#write_csv(unpaywall,upwname)
 
 # ensure unpaywall data is saved as factor
-unpaywall$evidence <- as.factor(unpaywall$evidence)
-unpaywall$free_fulltext_url <- as.factor(unpaywall$free_fulltext_url)
-unpaywall$license <- as.factor(unpaywall$license)
-unpaywall$oa_color <- as.factor(unpaywall$oa_color)
+unpaywall$evidence %<>% as.factor
+unpaywall$free_fulltext_url %<>% as.factor
+unpaywall$license %<>% as.factor
+unpaywall$oa_color %<>% as.factor
 
 # merge pure with unpaywall
 uu_merge <- merge(pure_uu,unpaywall,by="doi", all.x=T, all.y=F)
@@ -234,35 +206,42 @@ umcu_merge <- merge(pure_umcu,unpaywall,by="doi", all.x=T, all.y=F)
 
 
 #### CLASSIFICATION PIPELINE ####
-## apply the classification functions
+## apply the classification function
 uu_merge <- mutate(uu_merge,
-                   OA_label_conservative=mapply(define_oa, DOAJ_ISSN_match, VSNU_doi_match, oa_color))
+                   OA_label=mapply(define_oa,
+                                   DOAJ_ISSN_match,
+                                   VSNU_doi_match,
+                                   oa_color,
+                                   OA_status_pure))
 umcu_merge <- mutate(umcu_merge,
-                   OA_label_conservative=mapply(define_oa, DOAJ_ISSN_match, VSNU_doi_match, oa_color))
-uu_merge <- mutate(uu_merge,
-                   OA_label_broad=mapply(define_oa_broad, DOAJ_ISSN_match, VSNU_doi_match, oa_color,OA_status_pure))
-umcu_merge <- mutate(umcu_merge,
-                   OA_label_broad=mapply(define_oa_broad, DOAJ_ISSN_match, VSNU_doi_match, oa_color,OA_status_pure))
+                     OA_label=mapply(define_oa,
+                                     DOAJ_ISSN_match,
+                                     VSNU_doi_match,
+                                     oa_color,
+                                     OA_status_pure))
 
 ## turn the results into factors
-uu_merge$OA_label_conservative <- as.factor(uu_merge$OA_label_conservative)
-umcu_merge$OA_label_conservative <- as.factor(umcu_merge$OA_label_conservative)
-uu_merge$OA_label_broad <- as.factor(uu_merge$OA_label_broad)
-umcu_merge$OA_label_broad <- as.factor(umcu_merge$OA_label_broad)
+uu_merge$OA_label %<>% as.factor
+umcu_merge$OA_label %<>% as.factor
 
 
 
 #### RESULTING TABLES AND FIGURES ####
 
-uu_table <- table(uu_merge$OA_label_broad)
+uu_table <- table(uu_merge$OA_label)
 uu_prop <- prop.table(uu_table)
 
-umcu_table <- table(umcu_merge$OA_label_broad)
+umcu_table <- table(umcu_merge$OA_label)
 umcu_prop <- prop.table(umcu_table)
 
 
 
 
+## per department/faculty: look at whether missing unpaywall data
+## or missing DOI is a large proportion of total
+## which could mean that this data needs manual examination.
 
-
+# determine information and not information
+# information is doaj/vsnu/doi
+# if in a segment non information exceeds 5%, then we need manual checks
 
