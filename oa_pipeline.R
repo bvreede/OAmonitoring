@@ -245,6 +245,17 @@ umcu_table <- table(umcu_merge$OA_label)
 umcu_prop <- prop.table(umcu_table)
 
 
+#-UU+UMCU samen, ontdubbeld
+#-Per faculteit (en UMCU), daarbinnen ontdubbeld
+#-Per HOOP-gebied, daarbinnen ontdubbeld
+
+#En op elk van die niveau’s in ieder geval:
+#  -één tabel met aantallen per categorie
+#-één staafdiagram (100% stacked column)
+
+#En daarnaast
+#-Aantal OA publicaties binnen VSNU-deal
+#-Idealiter (maar hoeft niet nu) ook resultaten afgezet tegen voorgaande jaren. Bijv. staafdiagrammen voor faculteit X voor de jaren 2015-2018 (of lijndiagram, of…)
 
 
 ## per department/faculty: look at whether missing unpaywall data
