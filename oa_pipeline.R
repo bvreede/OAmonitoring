@@ -7,6 +7,15 @@ library(jsonlite)
 library(httr)
 library(magrittr)
 
+
+## source file paths
+path_pure_uu <- "data/UU-Monitoring_OA-2018-basislijst-report_3119.xls"
+path_pure_umcu <- "data/UMC-Monitoring_OA-2018-basislijst-report_3119.xls"
+path_vsnu <- "data/VSNU-DOIs.csv"
+path_doaj <- "data/2018-12-31-DOAJ-schoon.xlsx"
+path_unpaywall <- "data/unpaywall_2019-03-05.csv"
+
+
 ## functions
 department_check <- function(orgs){
   # collect all the organisation names
@@ -91,12 +100,12 @@ define_oa <- function(doaj,vsnu,upw,pure){
 #### LOAD AND CLEAN DATA ####
 
 ## UU data - from PURE
-pure_uu <- read_excel("data/UU-Monitoring_OA-2018-basislijst-report_3119.xls")
-pure_umcu <- read_excel("data/UMC-Monitoring_OA-2018-basislijst-report_3119.xls")
+pure_uu <- read_excel(path_pure_uu)
+pure_umcu <- read_excel(path_pure_umcu)
 
 ## Classification data
-doaj <- read_excel("data/2018-12-31-DOAJ-schoon.xlsx")
-vsnu <- read_csv("data/VSNU-DOIs.csv")
+doaj <- read_excel(path_doaj)
+vsnu <- read_csv(path_vsnu)
 
 
 ## Renaming columns so they will not have to be adjusted every time we run the script
@@ -167,7 +176,7 @@ pure_uu$VSNU_doi_match <- pure_uu$doi%in%vsnu_doi
 pure_umcu$VSNU_doi_match <- pure_umcu$doi%in%vsnu_doi
 
 ## Step 3: Unpaywall
-api_csv <- "api" #indicate here whether you want to load existing data or use the UPW api
+api_csv <- "csv" #indicate here whether you want to load existing data or use the UPW api
 
 # generate a database with unpaywall data using their REST API
 # use all DOIs as input
@@ -179,19 +188,21 @@ outlist <- list()
 
 for(i in seq_along(alldois)){
   doi <- alldois[i]
-  if(api_csv=="api"){
+  if(api_csv=="api"){ # only mine the api if the user wants to renew unpaywall data
     res <- upw_api(doi)
     outlist[[i]] <- res
   }
 }
 
-#unpaywall <- bind_rows(outlist)
-unpaywall <- read_csv("data/unpaywall_2019-03-05.csv")
-
-# save unpaywall data
-today <- as.character(Sys.Date())
-upwname <- paste0("data/unpaywall_",today,".csv")
-#write_csv(unpaywall,upwname)
+if(api_csv=="api"){
+  unpaywall <- bind_rows(outlist)
+  # save unpaywall data
+  today <- as.character(Sys.Date())
+  upwname <- paste0("data/unpaywall_",today,".csv")
+  write_csv(unpaywall,upwname)
+} else if(api_csv=="csv"){
+  unpaywall <- read_csv(path_unpaywall)
+}
 
 # ensure unpaywall data is saved as factor
 unpaywall$evidence %<>% as.factor
@@ -202,7 +213,6 @@ unpaywall$oa_color %<>% as.factor
 # merge pure with unpaywall
 uu_merge <- merge(pure_uu,unpaywall,by="doi", all.x=T, all.y=F)
 umcu_merge <- merge(pure_umcu,unpaywall,by="doi", all.x=T, all.y=F)
-
 
 
 #### CLASSIFICATION PIPELINE ####
