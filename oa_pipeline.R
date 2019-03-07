@@ -97,6 +97,27 @@ define_oa <- function(doaj,vsnu,upw,pure){
 }
 
 
+deduplicate <- function(df){
+  # perform deduplication
+  ## if a mix between UMC and UU: based on DOI, then title
+  ## if not: based on PURE ID
+  # determine whether there is a mix by looking at all organization levels
+  orgs <- df$org_unit
+  orgs %<>% as.character
+  orgs %<>% as.factor
+  if("UMC Utrecht"%in%levels(orgs)&length(levels(orgs))>1){
+    df1 <- filter(df,is.na(doi))
+    df1 <- distinct(df1,title.x,.keep_all=T)
+    df2 <- filter(df,!is.na(doi))
+    df2 <- distinct(df2,doi,.keep_all=T)
+    df <- full_join(df1,df2)
+  } else{
+    df <- distinct(df,pure_id,.keep_all=T)
+  }
+  return(df)
+}
+
+
 #### LOAD AND CLEAN DATA ####
 
 ## UU data - from PURE
@@ -114,6 +135,7 @@ colnames(pure_uu)[colnames(pure_uu) == 'ID-1'] <- "pure_id"
 colnames(pure_uu)[colnames(pure_uu) == 'Title of the contribution in original language-2'] <- "title"
 colnames(pure_uu)[colnames(pure_uu) == 'Journal > ISSN-5'] <- "issn"
 colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work > DOI (Digital Object Identifier)-7'] <- "doi"
+colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work > File > File name-6'] <- "electronic_version"
 colnames(pure_uu)[colnames(pure_uu) == 'Open Access status-8'] <- "OA_status_pure"
 
 colnames(pure_umcu)[colnames(pure_umcu) == 'Organisations > Organisational unit-0'] <- "org_unit"
@@ -121,7 +143,10 @@ colnames(pure_umcu)[colnames(pure_umcu) == 'ID-4'] <- "pure_id"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Title of the contribution in original language-6'] <- "title"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Journal > ISSN-7'] <- "issn"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Electronic version(s) of this work > DOI (Digital Object Identifier)-9'] <- "doi"
+colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work-10'] <- "electronic_version"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Open Access status-11'] <- "OA_status_pure"
+
+
 
 colnames(doaj)[colnames(doaj) == 'Journal ISSN (print version)'] <- "issn"
 colnames(doaj)[colnames(doaj) == 'Journal EISSN (online version)'] <- "eissn"
@@ -211,6 +236,7 @@ unpaywall$license %<>% as.factor
 unpaywall$oa_color %<>% as.factor
 
 # merge pure with unpaywall
+## CONSIDER JOIN IN UPDATE ##
 uu_merge <- merge(pure_uu,unpaywall,by="doi", all.x=T, all.y=F)
 umcu_merge <- merge(pure_umcu,unpaywall,by="doi", all.x=T, all.y=F)
 
@@ -234,15 +260,82 @@ umcu_merge <- mutate(umcu_merge,
 uu_merge$OA_label %<>% as.factor
 umcu_merge$OA_label %<>% as.factor
 
+## combine uu and umcu to one table, merge on title
+uu_merge$title.x <- str_fl
+
 
 
 #### RESULTING TABLES AND FIGURES ####
+
+# Merge both documents
+all_pubs <- full_join(uu_merge,umcu_merge)
+all_pubs$org_unit %<>% as.factor
+
+# Make a field that indicates whether information is available.
+# Information is available when there is a DOI, or when there is a confirmed VSNU ISSN.
+# Or when OA_STATUS is green, this is likely from Pure info; also counts as available info
+all_pubs <- mutate(all_pubs,
+                   information = ifelse(OA_label!="CLOSED"|is.na(electronic_version)|!is.na(doi_resolver),
+                                        T,F))
+
+# Label duplicates should be done per unique collection. 
+# If possible it should use DOIs, but it might be that titles cover more ground.
+# For this purpose:
+# make a title field that does not have punctuation and uses lowercase only
+all_pubs <- mutate(all_pubs,
+                   title_lower = str_to_lower(str_replace_all(title.x, "[[:punct:]]", "")))
+
+
+# make subselection
+# perform deduplication
+## if a mix between UMC and UU: based on DOI, then title
+## if not: based on PURE ID 
+# report fraction of absent information
+## if above 5% of total: give a warning, and put the entries in a df for manual check
+# report OA:
+## total number of publications in four categories
+## bar chart
+
+### ALL PUBLICATIONS ###
+
+
+
+  
+# report fraction of absent information
+## if above 5% of total: give a warning, and put the entries in a df for manual check
+# report OA:
+## total number of publications in four categories
+## bar chart
+
+
+#report(filter(all_pubs,org_unit=="UMC Utrecht"))
+test <- deduplicate(all_pubs)
+summary(test$information)
+View(filter(test,information==F))
+
+### PER FACULTY ####
+all_faculties <- levels(all_pubs$org_unit)
+all_faculties <- all_faculties[c(str_which(all_faculties, "Faculteit"),str_which(all_faculties,"UMC Utrecht"))]
+
+
+
+### PER HOOP-AREA ###
+HOOP <- read_excel("data/HOOPgebieden-test.xlsx")
+hoop_areas <- levels(as.factor(HOOP$HOOP))
+
+
+
+
+
+
 
 uu_table <- table(uu_merge$OA_label)
 uu_prop <- prop.table(uu_table)
 
 umcu_table <- table(umcu_merge$OA_label)
 umcu_prop <- prop.table(umcu_table)
+
+
 
 
 #-UU+UMCU samen, ontdubbeld
@@ -266,3 +359,7 @@ umcu_prop <- prop.table(umcu_table)
 # information is doaj/vsnu/doi
 # if in a segment non information exceeds 5%, then we need manual checks
 
+
+
+
+#### SOCIALE WETENSCHAPPEN: STUUR GEDETAILEERD BESTAND NAAR JAN ####
