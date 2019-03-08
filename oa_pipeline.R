@@ -96,27 +96,58 @@ define_oa <- function(doaj,vsnu,upw,pure){
   } 
 }
 
+define_oa_detailed <- function(doaj,vsnu,upw,pure){
+  ## DOAJ and VSNU: DOAJ means gold, VSNU deal list means hybrid
+  if(doaj){
+    return("GOLD - DOAJ")
+  } else if(vsnu){
+    return("HYBRID - VSNU DEAL")
+    ## UNPAYWALL 1: if it is NA, then check PURE or return closed
+  } else if(is.na(upw)){
+    if(pure=="Open"){
+      return("GREEN - OPEN IN PURE")}
+    else{
+      return("CLOSED")
+    }
+    ## UNPAYWALL 2: resolve to hybrid or green
+  } else if(upw=="bronze"|upw=="gold"){ # indeed, we choose to label gold only confirmed DOAJ ISSN
+    return("HYBRID - OPEN IN UNPAYWALL")
+  } else if(upw=="green"){
+    return("GREEN - GREEN IN UNPAYWALL")
+  } 
+}
+
 
 deduplicate <- function(df){
-  # perform deduplication
-  ## if a mix between UMC and UU: based on DOI, then title
-  ## if not: based on PURE ID
-  # determine whether there is a mix by looking at all organization levels
+  # determine whether there is a mix of UMCU/UU by looking at factor levels in org_unit
   orgs <- df$org_unit
   orgs %<>% as.character
   orgs %<>% as.factor
   if("UMC Utrecht"%in%levels(orgs)&length(levels(orgs))>1){
+    ## if a mix between UMC and UU: deduplicate based on DOI, then title
     df1 <- filter(df,is.na(doi))
     df1 <- distinct(df1,title.x,.keep_all=T)
     df2 <- filter(df,!is.na(doi))
     df2 <- distinct(df2,doi,.keep_all=T)
     df <- full_join(df1,df2)
   } else{
+    ## if not: deduplicate based on PURE ID
     df <- distinct(df,pure_id,.keep_all=T)
   }
   return(df)
 }
 
+
+infocheck <- function(df){
+  # checks of the percentage of missing information in a df does not exceed 5%
+  info <- df$information
+  f_mis <- sum(info==F)/length(info)
+  if(f_mis>0.05){
+    return(F)
+  } else{
+    return(T)
+  }
+}
 
 #### LOAD AND CLEAN DATA ####
 
@@ -256,13 +287,24 @@ umcu_merge <- mutate(umcu_merge,
                                      oa_color,
                                      OA_status_pure))
 
+uu_merge <- mutate(uu_merge,
+                   OA_label_detail=mapply(define_oa_detailed,
+                                   DOAJ_ISSN_match,
+                                   VSNU_doi_match,
+                                   oa_color,
+                                   OA_status_pure))
+umcu_merge <- mutate(umcu_merge,
+                     OA_label_detail=mapply(define_oa_detailed,
+                                     DOAJ_ISSN_match,
+                                     VSNU_doi_match,
+                                     oa_color,
+                                     OA_status_pure))
+
 ## turn the results into factors
 uu_merge$OA_label %<>% as.factor
 umcu_merge$OA_label %<>% as.factor
-
-## combine uu and umcu to one table, merge on title
-uu_merge$title.x <- str_fl
-
+uu_merge$OA_label_detail %<>% as.factor
+umcu_merge$OA_label_detail %<>% as.factor
 
 
 #### RESULTING TABLES AND FIGURES ####
@@ -285,39 +327,52 @@ all_pubs <- mutate(all_pubs,
 all_pubs <- mutate(all_pubs,
                    title_lower = str_to_lower(str_replace_all(title.x, "[[:punct:]]", "")))
 
-
+### Reporting:
 # make subselection
 # perform deduplication
-## if a mix between UMC and UU: based on DOI, then title
-## if not: based on PURE ID 
 # report fraction of absent information
 ## if above 5% of total: give a warning, and put the entries in a df for manual check
 # report OA:
 ## total number of publications in four categories
 ## bar chart
+
+# initialize a df with publications-to-check
+checkthese <- NULL
+incomplete <- NULL
+allresults <- list()
 
 ### ALL PUBLICATIONS ###
+all_pubs_report <- deduplicate(all_pubs)
+# if fraction of absent information is above 5%, add the entries to a df
+if(!infocheck(all_pubs_report)){
+  checkthese <- rbind(checkthese,filter(all_pubs_report,
+                                        information==F))
+  incomplete <- c(incomplete,"All publications")
+}
+# report OA
+allresults[["All publications"]] <- all_pubs_report %>% count(OA_label)
 
 
-
-  
-# report fraction of absent information
-## if above 5% of total: give a warning, and put the entries in a df for manual check
-# report OA:
-## total number of publications in four categories
-## bar chart
-
-
-#report(filter(all_pubs,org_unit=="UMC Utrecht"))
-test <- deduplicate(all_pubs)
-summary(test$information)
-View(filter(test,information==F))
 
 ### PER FACULTY ####
 all_faculties <- levels(all_pubs$org_unit)
 all_faculties <- all_faculties[c(str_which(all_faculties, "Faculteit"),str_which(all_faculties,"UMC Utrecht"))]
 
+for(f in all_faculties){
+  subset <- filter(all_pubs, org_unit==f)
+  subset_report <- deduplicate(subset)
+  # if fraction of absent information is above 5%, add the entries to a df
+  if(!infocheck(subset_report)){
+    checkthese <- rbind(checkthese,filter(subset_report,
+                                          information==F))
+    incomplete <- c(incomplete,f)
+  }
+  # report OA
+  allresults[[f]] <- subset_report %>% count(OA_label)
+  
+}
 
+allresults <- bind_cols(allresults)
 
 ### PER HOOP-AREA ###
 HOOP <- read_excel("data/HOOPgebieden-test.xlsx")
