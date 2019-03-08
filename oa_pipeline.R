@@ -137,7 +137,6 @@ deduplicate <- function(df){
   return(df)
 }
 
-
 infocheck <- function(df){
   # checks of the percentage of missing information in a df does not exceed 5%
   info <- df$information
@@ -148,6 +147,9 @@ infocheck <- function(df){
     return(T)
   }
 }
+
+
+
 
 #### LOAD AND CLEAN DATA ####
 
@@ -350,8 +352,7 @@ if(!infocheck(all_pubs_report)){
   incomplete <- c(incomplete,"All publications")
 }
 # report OA
-allresults[["All publications"]] <- all_pubs_report %>% count(OA_label)
-
+allresults[["All publications"]] <- table(all_pubs_report$OA_label)#all_pubs_report %>% count(OA_label)
 
 
 ### PER FACULTY ####
@@ -368,34 +369,39 @@ for(f in all_faculties){
     incomplete <- c(incomplete,f)
   }
   # report OA
-  allresults[[f]] <- subset_report %>% count(OA_label)
-  
+  allresults[[f]] <- table(subset_report$OA_label)
+
 }
 
-allresults <- bind_cols(allresults)
+
 
 ### PER HOOP-AREA ###
 HOOP <- read_excel("data/HOOPgebieden-test.xlsx")
+colnames(HOOP)[colnames(HOOP) == 'Contributors > Organisations > Organisational unit-0'] <- "org_unit"
+
 hoop_areas <- levels(as.factor(HOOP$HOOP))
+hoop_areas <- hoop_areas[hoop_areas!="n.v.t."]
 
 
+for(h in hoop_areas){
+  # which departments are included?
+  depts <- filter(HOOP, HOOP==h) %>% pull(org_unit)
+  subset <- filter(all_pubs, org_unit%in%depts)
+  subset_report <- deduplicate(subset)
+  # if fraction of absent information is above 5%, add the entries to a df
+  if(!infocheck(subset_report)){
+    checkthese <- rbind(checkthese,filter(subset_report,
+                                          information==F))
+    incomplete <- c(incomplete,h)
+  }
+  # report OA
+  allresults[[h]] <- table(subset_report$OA_label)
+}
 
 
+allresults_table <- bind_rows(!!!allresults, .id="id")
 
 
-
-uu_table <- table(uu_merge$OA_label)
-uu_prop <- prop.table(uu_table)
-
-umcu_table <- table(umcu_merge$OA_label)
-umcu_prop <- prop.table(umcu_table)
-
-
-
-
-#-UU+UMCU samen, ontdubbeld
-#-Per faculteit (en UMCU), daarbinnen ontdubbeld
-#-Per HOOP-gebied, daarbinnen ontdubbeld
 
 #En op elk van die niveau’s in ieder geval:
 #  -één tabel met aantallen per categorie
@@ -405,14 +411,6 @@ umcu_prop <- prop.table(umcu_table)
 #-Aantal OA publicaties binnen VSNU-deal
 #-Idealiter (maar hoeft niet nu) ook resultaten afgezet tegen voorgaande jaren. Bijv. staafdiagrammen voor faculteit X voor de jaren 2015-2018 (of lijndiagram, of…)
 
-
-## per department/faculty: look at whether missing unpaywall data
-## or missing DOI is a large proportion of total
-## which could mean that this data needs manual examination.
-
-# determine information and not information
-# information is doaj/vsnu/doi
-# if in a segment non information exceeds 5%, then we need manual checks
 
 
 
