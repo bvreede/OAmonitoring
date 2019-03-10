@@ -14,6 +14,7 @@ path_pure_umcu <- "data/UMC-Monitoring_OA-2018-basislijst-report_3119.xls"
 path_vsnu <- "data/VSNU-DOIs.csv"
 path_doaj <- "data/2018-12-31-DOAJ-schoon.xlsx"
 path_unpaywall <- "data/unpaywall_2019-03-05.csv"
+path_hoop <- "data/HOOPgebieden-test.xlsx"
 
 
 ## functions
@@ -137,15 +138,15 @@ deduplicate <- function(df){
   return(df)
 }
 
-infocheck <- function(df){
+
+infocheck <- function(df,checkthese){
   # checks of the percentage of missing information in a df does not exceed 5%
   info <- df$information
   f_mis <- sum(info==F)/length(info)
   if(f_mis>0.05){
-    return(F)
-  } else{
-    return(T)
+    checkthese <- rbind(checkthese,filter(df,information==F))
   }
+  return(checkthese)
 }
 
 
@@ -160,6 +161,9 @@ pure_umcu <- read_excel(path_pure_umcu)
 ## Classification data
 doaj <- read_excel(path_doaj)
 vsnu <- read_csv(path_vsnu)
+
+## Reporting information
+HOOP <- read_excel(path_hoop)
 
 
 ## Renaming columns so they will not have to be adjusted every time we run the script
@@ -179,11 +183,10 @@ colnames(pure_umcu)[colnames(pure_umcu) == 'Electronic version(s) of this work >
 colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work-10'] <- "electronic_version"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Open Access status-11'] <- "OA_status_pure"
 
-
-
 colnames(doaj)[colnames(doaj) == 'Journal ISSN (print version)'] <- "issn"
 colnames(doaj)[colnames(doaj) == 'Journal EISSN (online version)'] <- "eissn"
 
+colnames(HOOP)[colnames(HOOP) == 'Contributors > Organisations > Organisational unit-0'] <- "org_unit"
  
 ## Adjust data types
 
@@ -336,23 +339,18 @@ all_pubs <- mutate(all_pubs,
 ## if above 5% of total: give a warning, and put the entries in a df for manual check
 # report OA:
 ## total number of publications in four categories
-## bar chart
+
 
 # initialize a df with publications-to-check
 checkthese <- NULL
-incomplete <- NULL
+# initialize lists to collect results
 allresults <- list()
+
 
 ### ALL PUBLICATIONS ###
 all_pubs_report <- deduplicate(all_pubs)
-# if fraction of absent information is above 5%, add the entries to a df
-if(!infocheck(all_pubs_report)){
-  checkthese <- rbind(checkthese,filter(all_pubs_report,
-                                        information==F))
-  incomplete <- c(incomplete,"All publications")
-}
-# report OA
-allresults[["All publications"]] <- table(all_pubs_report$OA_label)#all_pubs_report %>% count(OA_label)
+checkthese <- infocheck(all_pubs_report,checkthese)
+allresults[["All publications"]] <- c(table(all_pubs_report$OA_label),table(all_pubs_report$OA_label_detail))
 
 
 ### PER FACULTY ####
@@ -362,18 +360,9 @@ all_faculties <- all_faculties[c(str_which(all_faculties, "Faculteit"),str_which
 for(f in all_faculties){
   subset <- filter(all_pubs, org_unit==f)
   subset_report <- deduplicate(subset)
-  # if fraction of absent information is above 5%, add the entries to a df
-  if(!infocheck(subset_report)){
-    checkthese <- rbind(checkthese,filter(subset_report,
-                                          information==F))
-    incomplete <- c(incomplete,f)
-  }
-  # report OA
-  allresults[[f]] <- table(subset_report$OA_label)
-
+  checkthese <- infocheck(subset,checkthese)
+  allresults[[f]] <- c(table(subset_report$OA_label),table(subset_report$OA_label_detail))
 }
-
-
 
 ### PER HOOP-AREA ###
 HOOP <- read_excel("data/HOOPgebieden-test.xlsx")
@@ -382,37 +371,23 @@ colnames(HOOP)[colnames(HOOP) == 'Contributors > Organisations > Organisational 
 hoop_areas <- levels(as.factor(HOOP$HOOP))
 hoop_areas <- hoop_areas[hoop_areas!="n.v.t."]
 
-
 for(h in hoop_areas){
   # which departments are included?
   depts <- filter(HOOP, HOOP==h) %>% pull(org_unit)
   subset <- filter(all_pubs, org_unit%in%depts)
   subset_report <- deduplicate(subset)
-  # if fraction of absent information is above 5%, add the entries to a df
-  if(!infocheck(subset_report)){
-    checkthese <- rbind(checkthese,filter(subset_report,
-                                          information==F))
-    incomplete <- c(incomplete,h)
-  }
-  # report OA
-  allresults[[h]] <- table(subset_report$OA_label)
+  # save records for manual checks in case incomplete information exceeds 5%
+  checkthese <- infocheck(subset,checkthese)
+  allresults[[h]] <- c(table(subset_report$OA_label),table(subset_report$OA_label_detail))
 }
 
+allresults <- bind_rows(!!!allresults, .id="id")
+checkthese <- deduplicate(checkthese)
 
-allresults_table <- bind_rows(!!!allresults, .id="id")
-
-
-
-#En op elk van die niveau’s in ieder geval:
-#  -één tabel met aantallen per categorie
-#-één staafdiagram (100% stacked column)
 
 #En daarnaast
 #-Aantal OA publicaties binnen VSNU-deal
 #-Idealiter (maar hoeft niet nu) ook resultaten afgezet tegen voorgaande jaren. Bijv. staafdiagrammen voor faculteit X voor de jaren 2015-2018 (of lijndiagram, of…)
-
-
-
 
 
 #### SOCIALE WETENSCHAPPEN: STUUR GEDETAILEERD BESTAND NAAR JAN ####
