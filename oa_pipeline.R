@@ -391,3 +391,8 @@ checkthese <- deduplicate(checkthese)
 
 
 #### SOCIALE WETENSCHAPPEN: STUUR GEDETAILEERD BESTAND NAAR JAN ####
+
+
+write_csv(checkthese,"data/checkthese.csv")
+write_csv(allresults,"data/allresults.csv")
+filter(all_pubs, org_unit=="Faculteit Sociale Wetenschappen") %>% write_csv("data/fsw.csv")
