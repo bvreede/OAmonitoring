@@ -10,7 +10,9 @@ library(magrittr)
 
 ## source file paths
 path_pure_uu <- "data/UU-Monitoring_OA-2018-basislijst-report_3119.xls"
+#path_pure_uu <- "2018_Monitoring_OA___basislijst_2-aangepast_20190311.xls"
 path_pure_umcu <- "data/UMC-Monitoring_OA-2018-basislijst-report_3119.xls"
+#path_pure_umcu <- "UMC-Monitoring_OA-extrainfo-2018-12_03_19.xls"
 path_vsnu <- "data/VSNU-DOIs.csv"
 path_doaj <- "data/2018-12-31-DOAJ-schoon.xlsx"
 path_unpaywall <- "data/unpaywall_2019-03-05.csv"
@@ -85,7 +87,7 @@ define_oa <- function(doaj,vsnu,upw,pure){
     ## UNPAYWALL 1: if it is NA, then check PURE or return closed
   } else if(is.na(upw)){
     if(pure=="Open"){
-      return("GREEN")}
+      return("HYBRID")} # add exception: if embargo = green, or if AAM = green.
     else{
       return("CLOSED")
     }
@@ -148,6 +150,8 @@ infocheck <- function(df,checkthese){
   }
   return(checkthese)
 }
+
+
 
 
 
@@ -347,10 +351,13 @@ checkthese <- NULL
 allresults <- list()
 
 
+
+
 ### ALL PUBLICATIONS ###
 all_pubs_report <- deduplicate(all_pubs)
 checkthese <- infocheck(all_pubs_report,checkthese)
 allresults[["All publications"]] <- c(table(all_pubs_report$OA_label),table(all_pubs_report$OA_label_detail))
+pie()
 
 
 ### PER FACULTY ####
@@ -384,6 +391,31 @@ for(h in hoop_areas){
 allresults <- bind_rows(!!!allresults, .id="id")
 checkthese <- deduplicate(checkthese)
 
+lbls <- c("CLOSED","GOLD","GREEN","HYBRID")
+neworder <- c(1,3,4,2)
+piecols <- c("grey","goldenrod","darkolivegreen3","coral2")
+piecols <- piecols[neworder]
+
+## MAKE PIECHARTS ## 
+for(n in 1:nrow(allresults)){
+  title <- allresults[n,"id"]
+  slices <- unlist(allresults[n,lbls],use.names=F)
+  ns <- paste0("n=",slices)
+  labs <- paste(lbls,ns)
+  # reorder
+  ns <- ns[neworder]
+  labs <- labs[neworder]
+  slices <- slices[neworder]
+  # name
+  ttl <- str_replace(title," ","_")
+  ttl <- str_replace(ttl,"&","en")
+  fn <- paste0("img/",ttl,".png")
+  png(filename=fn,width=750,height=750,res=130)
+  pie(slices,labels=ns,main=title,init.angle=90,col=piecols,border=0)
+  dev.off()
+}
+
+
 
 #En daarnaast
 #-Aantal OA publicaties binnen VSNU-deal
@@ -396,3 +428,6 @@ checkthese <- deduplicate(checkthese)
 write_csv(checkthese,"data/checkthese.csv")
 write_csv(allresults,"data/allresults.csv")
 filter(all_pubs, org_unit=="Faculteit Sociale Wetenschappen") %>% write_csv("data/fsw.csv")
+
+write_csv(all_pubs,"data/finaldataset.csv")
+write_csv(all_pubs_report,"data/finaldataset_deduplicated.csv")
