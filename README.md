@@ -19,6 +19,9 @@ The pipeline tries to classify all publications according to its presence or abs
 1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). If the journal matches, the publication is Gold OA
 2. match the DOI with a list obtained from VSNU. If the journal matches, the publication is Hybrid OA
 3. obtain the OA status from Unpaywall. If the status is publisher, the publication is Hybrid OA. If the status is repository, the publication is Green OA.
+4. obtain the OA status from Pure. If the status is Open, the publication is Hybrid OA, unless
+4a. a version of the publication is Open, but not the publisher version: the publication is Green OA.
+4b. the publisher version is open, but was previously under closed under embargo: the publication is Green OA.
 4. if publication matches none of the above, the publication has an unknown OA status and is considered closed.
 
 ### DOAJ Data
