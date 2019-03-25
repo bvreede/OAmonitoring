@@ -41,7 +41,7 @@ Retrieve OA status according to Unpaywall, using their API (http://unpaywall.org
 OA Status in Pure is determined by employees of Utrecht University Library who manually check each publication added to Pure, add the full text and determine if it is OA available (Open/Embargoed/Closed). Distinguishing between types of OA availability is at this moment not part of this procedure.
 
 ## Manual check for OA status
-A manual check might be benificiary for those titles that do not have a DOI. We only check these titles when within an organizational unit the number of titles without a DOI is at least x% of the total number of titles within that organizational unit.
+A manual check might be benificiary for those titles that do not have a DOI. We only check these titles when within an organizational unit the number of titles without a DOI is at least 5% of the total number of titles within that organizational unit.
 
 ## Reporting OA status
 
