@@ -46,9 +46,9 @@ A manual check might be benificiary for those titles that do not have a DOI. We 
 ## Reporting OA status
 
 The OA status (4 categories) is reported regarding three organizational levels:
--UU/UMCU total
--For each faculty
--For each HOOP-gebied (the division of Dutch Higher Education and Research into eight categories: Landbouw (Agriculture), Natuur (Nature), Techniek (Technique), Gezondheid (Health), Gedrag en Maatschappij (Behaviour and Society), Economie (Economics), Recht (Law), Taal en Cultuur (Language and Culture). Each faculty or department is assigned to one HOOP category. 
+- UU/UMCU total
+- For each faculty
+- For each HOOP-gebied (the division of Dutch Higher Education and Research into eight categories: Landbouw (Agriculture), Natuur (Nature), Techniek (Technique), Gezondheid (Health), Gedrag en Maatschappij (Behaviour and Society), Economie (Economics), Recht (Law), Taal en Cultuur (Language and Culture). Each faculty or department is assigned to one HOOP category. 
 
 ## Future or bespoke use of this script
 When re-using this script, adjust the following things:
