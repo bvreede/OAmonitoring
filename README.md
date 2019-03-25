@@ -37,20 +37,20 @@ Content: Cumulative list of all OA articles published within the Netherlands (no
 ### Unpaywall data
 Retrieve OA status according to Unpaywall, using their API (http://unpaywall.org/products/api).
 
-## Manual check for OA status
-A manual check is necessary for two reasons:
--some publications do not have a DOI
--Unpaywall does not have the OA status for all OA available publications.
+### OA Status in Pure
+OA Status in Pure is determined by employees of Utrecht University Library who manually check each publication added to Pure, add the full text and determine if it is OA available (Open/Embargoed/Closed). Distinguishing between types of OA availability is at this moment not part of this procedure.
 
-Publications that meet the following two criteria must be checked manually for their OA status:
--unknown/closed OA status (not matching DOAJ, VSNU and/or Unpaywall)
--has an electronic file in our repository
+## Manual check for OA status
+A manual check might be benificiary for those titles that do not have a DOI. We only check these titles when within an organizational unit the number of titles without a DOI is at least x% of the total number of titles within that organizational unit.
 
 ## Reporting OA status
 
-...
+The OA status (4 categories) is reported regarding three organizational levels:
+-UU/UMCU total
+-For each faculty
+-For each HOOP-gebied (the division of Dutch Higher Education and Research into eight categories: Landbouw (Agriculture), Natuur (Nature), Techniek (Technique), Gezondheid (Health), Gedrag en Maatschappij (Behaviour and Society), Economie (Economics), Recht (Law), Taal en Cultuur (Language and Culture). Each faculty or department is assigned to one HOOP category. 
 
-# Future or bespoke use of this script
+## Future or bespoke use of this script
 When re-using this script, adjust the following things:
 
 - At the top of the script, adjust the file paths for your source data (use of a `data` folder is strongly recommended);
