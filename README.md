@@ -58,3 +58,9 @@ When re-using this script, adjust the following things:
 - Adjust the column names in the section 'renaming columns ...', to reflect those used in your source files. 
 - In the `upw_api` function, adjust the email address to reflect the current user; 
 - In the 'unpaywall' section of 'OA labelling', choose 'api' or 'csv' for the variable `api_csv`, depending on whether you want to load existing unpaywall data ('csv'), or re-run the unpaywall analysis via their api ('api')
+
+
+
+## Wishlist
+- Test the sources for quality
+- Consider making a table that would allow user to input column names. E.g. title = 'Title of the contribution in original language-2'; this way, that information does not have to be hard coded but can be provided by a user less comfortable in R.
