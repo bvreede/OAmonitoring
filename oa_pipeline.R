@@ -6,17 +6,19 @@ library(dplyr)
 library(jsonlite)
 library(httr)
 library(magrittr)
+library(ggplot2)
 
 
 ## source file paths
-path_pure_uu <- "data/UU-Monitoring_OA-2018-basislijst-report_3119.xls"
-#path_pure_uu <- "2018_Monitoring_OA___basislijst_2-aangepast_20190311.xls"
-path_pure_umcu <- "data/UMC-Monitoring_OA-2018-basislijst-report_3119.xls"
-#path_pure_umcu <- "UMC-Monitoring_OA-extrainfo-2018-12_03_19.xls"
+#path_pure_uu <- "data/UU-Monitoring_OA-2018-basislijst-report_3119.xls"
+path_pure_uu <- "data/2018_Monitoring_OA___basislijst_2-aangepast_20190311.xls"
+#path_pure_umcu <- "data/UMC-Monitoring_OA-2018-basislijst-report_3119.xls"
+path_pure_umcu <- "data/UMC-Monitoring_OA-extrainfo-2018-12_03_19.xls"
 path_vsnu <- "data/VSNU-DOIs.csv"
 path_doaj <- "data/2018-12-31-DOAJ-schoon.xlsx"
 path_unpaywall <- "data/unpaywall_2019-03-05.csv"
 path_hoop <- "data/HOOPgebieden-test.xlsx"
+path_handmatig <- "data/handmatige_controle_MenA-gedaan.xlsx"
 
 
 ## functions
@@ -74,50 +76,89 @@ upw_api <- function(doi){
 ##    If the status is 'gold' or 'bronze', the publication is Hybrid OA
 ##    If the status is 'green', the publication is Green OA
 ## 4. use existing Pure status                                     
-##    If the pure status is 'open', the publication is Green OA
+##    If the pure status is 'open', the publication is either hybrid or green OA
+##    Green OA only if an embargo is noted, or the file contains an AAM (not publisher version)
+## 5. apply data from an optional manual check
 # NB in the classification pipeline these labels will be applied in sequence
 # Thus, e.g. if ISSN matches DOAJ but Unpaywall says 'green', the label will still be Gold OA.
 
-define_oa <- function(doaj,vsnu,upw,pure){
+define_oa <- function(doaj,vsnu,upw,pure,green,man=NA){
+  # DOAJ and VSNU: 
+  if(doaj){ # DOAJ means gold
+    return("GOLD")
+  }
+  if(vsnu){ # VSNU deal list means hybrid
+    return("HYBRID")
+  }
+  # UNPAYWALL: resolve to hybrid or green, build in error for different inputs
+  if(!is.na(upw)){
+    if(upw=="bronze"|upw=="gold"){ # indeed, we choose to label gold only confirmed DOAJ ISSN
+      return("HYBRID")
+    } else if(upw=="green"){
+      return("GREEN")
+    } else{ #we only get to this point if there are other labels in unpaywall than bronze/gold/green
+      return("UNDERTERMINED - CHECK define_oa FUNCTION")
+    }
+  }
+  # PURE: if the status is open
+  if(pure=="Open"&!is.na(pure)){
+    if(green){
+      return("GREEN") # this is true if embargo or AAM in pure
+    } else{
+      return("HYBRID")
+    }
+  }
+  # MANUAL
+  ### last check: is there a manual annotation for this paper?
+  if(!is.na(man)){
+    if(man=="B"){
+      return("HYBRID")
+    } else if(man=="C"){
+        return("GREEN")
+    } 
+  }
+  return("CLOSED")
+}
+
+define_oa_detailed <- function(doaj,vsnu,upw,pure,green,man=NA){
   ## DOAJ and VSNU: DOAJ means gold, VSNU deal list means hybrid
   if(doaj){
     return("GOLD")
-  } else if(vsnu){
-    return("HYBRID")
-    ## UNPAYWALL 1: if it is NA, then check PURE or return closed
-  } else if(is.na(upw)){
-    if(pure=="Open"){
-      return("HYBRID")} # add exception: if embargo = green, or if AAM = green.
-    else{
-      return("CLOSED")
+  }
+  if(vsnu){
+    return("HYBRID VSNU")
+  }
+  ## UNPAYWALL: resolve to hybrid or green
+  if(!is.na(upw)){
+    if(upw=="bronze"){
+      return("HYBRID UPW BRONZE") 
     }
-    ## UNPAYWALL 2: resolve to hybrid or green
-  } else if(upw=="bronze"|upw=="gold"){ # indeed, we choose to label gold only confirmed DOAJ ISSN
-    return("HYBRID")
-  } else if(upw=="green"){
-    return("GREEN")
-  } 
-}
-
-define_oa_detailed <- function(doaj,vsnu,upw,pure){
-  ## DOAJ and VSNU: DOAJ means gold, VSNU deal list means hybrid
-  if(doaj){
-    return("GOLD - DOAJ")
-  } else if(vsnu){
-    return("HYBRID - VSNU DEAL")
-    ## UNPAYWALL 1: if it is NA, then check PURE or return closed
-  } else if(is.na(upw)){
-    if(pure=="Open"){
-      return("GREEN - OPEN IN PURE")}
-    else{
-      return("CLOSED")
+    if(upw=="gold"){
+      return("HYBRID UPW GOLD")
     }
-    ## UNPAYWALL 2: resolve to hybrid or green
-  } else if(upw=="bronze"|upw=="gold"){ # indeed, we choose to label gold only confirmed DOAJ ISSN
-    return("HYBRID - OPEN IN UNPAYWALL")
-  } else if(upw=="green"){
-    return("GREEN - GREEN IN UNPAYWALL")
-  } 
+    if(upw=="green"){
+      return("GREEN UPW")
+    }
+  }
+  ## PURE: resolve to hybrid or green
+  if(!is.na(pure)){
+    if(pure=="Open"){
+      if(green){
+        return("GREEN PURE")
+      } else{
+        return("HYBRID PURE")
+      }
+    }
+  }
+  ## MANUAL: resolve to hybrid or green
+ if(!is.na(man)){
+      if(man=="B"){
+        return("HYBRID MANUAL")
+      } else if(man=="C"){
+        return("GREEN MANUAL")
+      }
+ }
+  return("CLOSED")
 }
 
 
@@ -160,7 +201,9 @@ infocheck <- function(df,checkthese){
 
 ## UU data - from PURE
 pure_uu <- read_excel(path_pure_uu)
+pure_uu_old <- read_excel(path_pure_uu_old)
 pure_umcu <- read_excel(path_pure_umcu)
+pure_manual <- read_excel(path_handmatig)
 
 ## Classification data
 doaj <- read_excel(path_doaj)
@@ -171,21 +214,42 @@ HOOP <- read_excel(path_hoop)
 
 
 ## Renaming columns so they will not have to be adjusted every time we run the script
+# NB THESE ARE COL IDS FROM EARLIER VERSION
 colnames(pure_uu)[colnames(pure_uu) == 'Contributors > Organisations > Organisational unit-0'] <- "org_unit"
 colnames(pure_uu)[colnames(pure_uu) == 'ID-1'] <- "pure_id"
 colnames(pure_uu)[colnames(pure_uu) == 'Title of the contribution in original language-2'] <- "title"
 colnames(pure_uu)[colnames(pure_uu) == 'Journal > ISSN-5'] <- "issn"
-colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work > DOI (Digital Object Identifier)-7'] <- "doi"
-colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work > File > File name-6'] <- "electronic_version"
-colnames(pure_uu)[colnames(pure_uu) == 'Open Access status-8'] <- "OA_status_pure"
+#colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work > DOI (Digital Object Identifier)-7'] <- "doi"
+#colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work > File > File name-6'] <- "electronic_version"
+#colnames(pure_uu)[colnames(pure_uu) == 'Open Access status-8'] <- "OA_status_pure"
 
+# THESE ARE FROM ADJUSTED VERSION OF INPUT DATA AND FOR ADDITIONAL COLUMNS
+colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work > DOI (Digital Object Identifier)-6'] <- "doi"
+colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work > Document version-8'] <- "electronic_version"
+colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work > Public access to file-9'] <- "public_access"
+colnames(pure_uu)[colnames(pure_uu) == 'Open Access status-7'] <- "OA_status_pure"
+colnames(pure_uu)[colnames(pure_uu) == 'Open Access embargo date-10'] <- "embargo_date"
+
+## Add manual checks
+pure_manual <- mutate(pure_manual,manual=substring(handmatig,1,1)) %>%
+  select(manual,pure_id) %>%
+  filter(manual=="A"|manual=="B"|manual=="C"|manual=="D")
+
+
+
+# COL IDS FROM EARLIER VERSION
 colnames(pure_umcu)[colnames(pure_umcu) == 'Organisations > Organisational unit-0'] <- "org_unit"
 colnames(pure_umcu)[colnames(pure_umcu) == 'ID-4'] <- "pure_id"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Title of the contribution in original language-6'] <- "title"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Journal > ISSN-7'] <- "issn"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Electronic version(s) of this work > DOI (Digital Object Identifier)-9'] <- "doi"
-colnames(pure_uu)[colnames(pure_uu) == 'Electronic version(s) of this work-10'] <- "electronic_version"
+#colnames(pure_umcu)[colnames(pure_umcu) == 'Electronic version(s) of this work-10'] <- "electronic_version"
 colnames(pure_umcu)[colnames(pure_umcu) == 'Open Access status-11'] <- "OA_status_pure"
+
+# ADJUSTED VERSION PLUS ADDITIONAL COLUMNS
+colnames(pure_umcu)[colnames(pure_umcu) == 'Electronic version(s) of this work > Document version-12'] <- "electronic_version"
+colnames(pure_umcu)[colnames(pure_umcu) == 'Open Access embargo date-14'] <- "embargo_date"
+
 
 colnames(doaj)[colnames(doaj) == 'Journal ISSN (print version)'] <- "issn"
 colnames(doaj)[colnames(doaj) == 'Journal EISSN (online version)'] <- "eissn"
@@ -197,6 +261,7 @@ colnames(HOOP)[colnames(HOOP) == 'Contributors > Organisations > Organisational 
 # Set ID as character, so that it will not be treated as a numeral
 pure_uu$pure_id %<>% as.character
 pure_umcu$pure_id %<>% as.character
+pure_manual$pure_id %<>% as.character
 
 # Set organisational unit, ISSN and OA status as factors because they are fixed variables which we want to analyze.
 pure_uu$org_unit %<>% as.factor
@@ -210,6 +275,9 @@ pure_umcu$OA_status_pure %<>% as.factor
 ## Verify data (uu only)
 department_check(pure_uu$org_unit)
 
+## Add manual checks
+pure_uu <- left_join(pure_uu,pure_manual,by="pure_id")
+
 ## Clean data
 # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
 pure_uu$issn <- clean_issn(pure_uu$issn)
@@ -222,6 +290,7 @@ doaj$issn <- clean_issn(doaj$issn)
 doaj$eissn <- clean_issn(doaj$eissn)
 
 vsnu$DOI <- clean_doi(vsnu$DOI)
+
 
 
 #### OA LABELLING ####
@@ -240,7 +309,16 @@ vsnu_doi <- vsnu$DOI[!is.na(vsnu$DOI)]
 pure_uu$VSNU_doi_match <- pure_uu$doi%in%vsnu_doi
 pure_umcu$VSNU_doi_match <- pure_umcu$doi%in%vsnu_doi
 
-## Step 3: Unpaywall
+## Step 3: PURE classification
+pure_uu <- mutate(pure_uu,
+                  pure_green = str_detect(electronic_version,"Accepted author manuscript")|
+                    !is.na(embargo_date))
+pure_umcu <- mutate(pure_umcu,
+                  pure_green = str_detect(electronic_version,"Accepted author manuscript")|
+                    !is.na(embargo_date))
+
+
+## Step 4: Unpaywall
 api_csv <- "csv" #indicate here whether you want to load existing data or use the UPW api
 
 # generate a database with unpaywall data using their REST API
@@ -277,8 +355,10 @@ unpaywall$oa_color %<>% as.factor
 
 # merge pure with unpaywall
 ## CONSIDER JOIN IN UPDATE ##
-uu_merge <- merge(pure_uu,unpaywall,by="doi", all.x=T, all.y=F)
-umcu_merge <- merge(pure_umcu,unpaywall,by="doi", all.x=T, all.y=F)
+uu_merge <- left_join(pure_uu,unpaywall,by="doi")
+umcu_merge <- left_join(pure_umcu,unpaywall,by="doi")
+
+
 
 
 #### CLASSIFICATION PIPELINE ####
@@ -288,26 +368,32 @@ uu_merge <- mutate(uu_merge,
                                    DOAJ_ISSN_match,
                                    VSNU_doi_match,
                                    oa_color,
-                                   OA_status_pure))
+                                   OA_status_pure,
+                                   pure_green,
+                                   manual))
 umcu_merge <- mutate(umcu_merge,
                      OA_label=mapply(define_oa,
                                      DOAJ_ISSN_match,
                                      VSNU_doi_match,
                                      oa_color,
-                                     OA_status_pure))
+                                     OA_status_pure,
+                                     pure_green))
 
 uu_merge <- mutate(uu_merge,
                    OA_label_detail=mapply(define_oa_detailed,
                                    DOAJ_ISSN_match,
                                    VSNU_doi_match,
                                    oa_color,
-                                   OA_status_pure))
+                                   OA_status_pure,
+                                   pure_green,
+                                   manual))
 umcu_merge <- mutate(umcu_merge,
                      OA_label_detail=mapply(define_oa_detailed,
                                      DOAJ_ISSN_match,
                                      VSNU_doi_match,
                                      oa_color,
-                                     OA_status_pure))
+                                     OA_status_pure,
+                                     pure_green))
 
 ## turn the results into factors
 uu_merge$OA_label %<>% as.factor
@@ -321,13 +407,13 @@ umcu_merge$OA_label_detail %<>% as.factor
 # Merge both documents
 all_pubs <- full_join(uu_merge,umcu_merge)
 all_pubs$org_unit %<>% as.factor
+all_pubs$OA_label_detail %<>% as.factor
 
 # Make a field that indicates whether information is available.
 # Information is available when there is a DOI, or when there is a confirmed VSNU ISSN.
 # Or when OA_STATUS is green, this is likely from Pure info; also counts as available info
 all_pubs <- mutate(all_pubs,
-                   information = ifelse(OA_label!="CLOSED"|is.na(electronic_version)|!is.na(doi_resolver),
-                                        T,F))
+                   information = OA_label!="CLOSED"|is.na(electronic_version)|!is.na(doi_resolver))
 
 # Label duplicates should be done per unique collection. 
 # If possible it should use DOIs, but it might be that titles cover more ground.
@@ -357,7 +443,6 @@ allresults <- list()
 all_pubs_report <- deduplicate(all_pubs)
 checkthese <- infocheck(all_pubs_report,checkthese)
 allresults[["All publications"]] <- c(table(all_pubs_report$OA_label),table(all_pubs_report$OA_label_detail))
-pie()
 
 
 ### PER FACULTY ####
@@ -393,7 +478,7 @@ checkthese <- deduplicate(checkthese)
 
 lbls <- c("CLOSED","GOLD","GREEN","HYBRID")
 neworder <- c(1,3,4,2)
-piecols <- c("grey","goldenrod","darkolivegreen3","coral2")
+piecols <- c("gray88","gold1","chartreuse3","orange3")
 piecols <- piecols[neworder]
 
 ## MAKE PIECHARTS ## 
@@ -417,13 +502,6 @@ for(n in 1:nrow(allresults)){
 
 
 
-#En daarnaast
-#-Aantal OA publicaties binnen VSNU-deal
-#-Idealiter (maar hoeft niet nu) ook resultaten afgezet tegen voorgaande jaren. Bijv. staafdiagrammen voor faculteit X voor de jaren 2015-2018 (of lijndiagram, of…)
-
-
-#### SOCIALE WETENSCHAPPEN: STUUR GEDETAILEERD BESTAND NAAR JAN ####
-
 
 write_csv(checkthese,"data/checkthese.csv")
 write_csv(allresults,"data/allresults.csv")
@@ -431,3 +509,6 @@ filter(all_pubs, org_unit=="Faculteit Sociale Wetenschappen") %>% write_csv("dat
 
 write_csv(all_pubs,"data/finaldataset.csv")
 write_csv(all_pubs_report,"data/finaldataset_deduplicated.csv")
+
+
+
