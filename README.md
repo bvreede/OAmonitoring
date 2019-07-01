@@ -64,3 +64,4 @@ When re-using this script, adjust the following things:
 ## Wishlist
 - Test the sources for quality
 - Consider making a table that would allow user to input column names. E.g. title = 'Title of the contribution in original language-2'; this way, that information does not have to be hard coded but can be provided by a user less comfortable in R.
+- What happens if we use the Core db instead of Unpaywall? https://core.ac.uk/services/api/
