@@ -17,3 +17,4 @@ myfiles = lapply(infiles, read_csv)
 # bind all together to one large dataframe
 df <- bind_rows(myfiles)
 
+## Note that pure_id is system_id in the new input files!
