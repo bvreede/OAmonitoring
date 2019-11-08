@@ -1,0 +1,4 @@
+path_pub <- "data/2018_Monitoring_OA___basislijst_2-aangepast_20190311.xls" 
+path_vsnu <- "data/VSNU-DOIs.csv"
+path_doaj <- "data/2018-12-31-DOAJ-schoon.xlsx"
+path_unpaywall <- "data/unpaywall_2019-03-05.csv"
