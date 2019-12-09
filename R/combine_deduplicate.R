@@ -9,6 +9,7 @@ library(magrittr)
 library(ggplot2)
 
 
+
 ## read data
 # read all csv files in the output folder
 infiles = list.files(path = "./output", pattern="*_clean.csv")
@@ -25,6 +26,15 @@ df <- bind_rows(myfiles)
 ##### NB!! Note that pure_id is system_id in the new input files! ######
 ########################################################################
 
+report <- function(nrecords_post,nrecords,method){
+  cat("records generated:")
+  cat(nrecords_post)
+  cat("\nfrom:")
+  cat(nrecords)
+  cat("\nduplication method:")
+  cat(method)
+  cat("\n")
+}
 
 deduplicate <- function(df){
   #' Deduplication of publication entries.
@@ -35,23 +45,29 @@ deduplicate <- function(df){
   #' in the results if a publication is entered multiple times by different groups, eg.
   # first determine whether there is a mix of multiple source files
   sourcefiles <- df$source %>% as.factor() %>% levels()
+  nrecords <- nrow(df)
   if(length(sourcefiles) < 2){ # in this case, a single source file has been used, so deduplication can be performed on system ID
-    df <- distinct(df,system_id,.keep_all = T)   
+    df <- distinct(df,system_id,.keep_all = T)
+    report(nrecords_post,nrecords,"System ID")
   }
   else{
     # separate between entries with and without doi
     # deduplicate entries in the doi dataframe first
     df_nondoi <- df %>% filter(is.na(doi))
     df_doi <- df %>%
-      filter(!is.na(doi)) %>%
-      distinct(doi,.keep_all = T)
+      filter(!is.na(doi))
+    nrecords <- nrow(df_doi)
+    df_doi <- df_doi %>% distinct(doi,.keep_all = T)
+    nrecords_post <- 34
+    report(nrecords_post,nrecords,"DOI")
     # combine with nondoi and deduplicate by title
-    df <- full_join(df_doi,df_nondoi) %>% 
-      mutate(title_lower = str_to_lower(title),
-             title_lower = str_replace_all(title_lower,"[:punct:]+", ""),
-             title_lower = str_replace_all(title_lower,"[:blank:]+","")) %>%
-      distinct(title_lower,.keep_all = T) #%>%
-      #select(-title_lower)
+    df <- full_join(df_doi,df_nondoi) %>%
+      mutate(title_adj = str_to_lower(title),
+             title_adj = str_replace_all(title_adj,"[:punct:]+", ""),
+             title_adj = str_replace_all(title_adj,"[:blank:]+", "")) %>%
+      distinct(title_adj,.keep_all = T)
   }
   return(df)
 }
+
+testdf <- deduplicate(df)
