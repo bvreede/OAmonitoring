@@ -1,3 +1,14 @@
+#### Step two of the Open Access monitoring pipeline
+#### Cleaned and indexed files are read and interpreted
+#### with this script to write the reports.
+#### Input required from the user: a config
+#### file with the organisation units that need
+#### to be reported on.
+####
+#### Written by: Barbara Vreede
+#### Contact: b.vreede@gmail.com
+
+
 ## load libraries
 library(readr)
 library(readxl)
@@ -7,7 +18,6 @@ library(jsonlite)
 library(httr)
 library(magrittr)
 library(ggplot2)
-
 
 
 ## read data
@@ -31,16 +41,27 @@ report <- function(nrecords_post,nrecords,method){
   cat(nrecords_post)
   cat("\nfrom:")
   cat(nrecords)
+  cat("\nrecords deleted:")
+  cat(nrecords-nrecords_post)
   cat("\nduplication method:")
   cat(method)
   cat("\n")
 }
 
+
+deduplicate_doi <- function(df){
+  #' Deduplicate publication entries based on doi
+  #' 
+  #' Deduplication function 
+}
+
+
+
 deduplicate <- function(df){
   #' Deduplication of publication entries.
   #' 
-  #' Deduplication function that uses a single dataframe and deduplicates
-  #' based on DOI and then on title.
+  #' Deduplication function that uses a single dataframe and applies a variety
+  #' of deduplication functions to subsets of the dataframe.
   #' Required to use before reporting on a subset of publications, so that no bias is created
   #' in the results if a publication is entered multiple times by different groups, eg.
   # first determine whether there is a mix of multiple source files
@@ -51,6 +72,10 @@ deduplicate <- function(df){
     report(nrecords_post,nrecords,"System ID")
   }
   else{
+    df <- df %>%
+      mutate(title_adj = str_to_lower(title),
+           title_adj = str_replace_all(title_adj,"[:punct:]+", ""),
+           title_adj = str_replace_all(title_adj,"[:blank:]+", ""))
     # separate between entries with and without doi
     # deduplicate entries in the doi dataframe first
     df_nondoi <- df %>% filter(is.na(doi))
@@ -58,16 +83,28 @@ deduplicate <- function(df){
       filter(!is.na(doi))
     nrecords <- nrow(df_doi)
     df_doi <- df_doi %>% distinct(doi,.keep_all = T)
-    nrecords_post <- 34
+    nrecords_post <- nrow(df_doi)
     report(nrecords_post,nrecords,"DOI")
-    # combine with nondoi and deduplicate by title
-    df <- full_join(df_doi,df_nondoi) %>%
-      mutate(title_adj = str_to_lower(title),
-             title_adj = str_replace_all(title_adj,"[:punct:]+", ""),
-             title_adj = str_replace_all(title_adj,"[:blank:]+", "")) %>%
+    # deduplicate by system ID
+    
+    df_nondoi[duplicated(df_nondoi$title_adj),] %>% View()
+    nrecords <- nrow(df_nondoi)
+    df_nondoi <- df_nondoi %>%
       distinct(title_adj,.keep_all = T)
+    nrecords_post <- nrow(df_nondoi)
+    report(nrecords_post,nrecords,"title")
+    # combine and then duplicate by title
+    df <- full_join(df_doi,df_nondoi)
+    #nrecords <- nrow(df)
+    #df <- df %>%
+    #  distinct(title_adj,.keep_all = T)
+    #nrecords_post <- nrow(df)
+    #report(nrecords_post,nrecords,"both")
   }
   return(df)
 }
 
+
 testdf <- deduplicate(df)
+
+testdf[duplicated(testdf$title_adj),] %>% View()
