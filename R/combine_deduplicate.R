@@ -50,20 +50,32 @@ report <- function(nrecords_post,nrecords,method){
 
 
 deduplicate_doi <- function(df){
-  #' Deduplicate publication entries based on doi
+  #' @title Deduplicate publication entries based on doi
   #' 
-  #' Deduplication function 
+  #' Deduplication function that takes a dataframe with dois
+  #' and returns the deduplicated dataframe.
+  #' 
+  ### tests ###
+  # input is a dataframe
+  expect_that(df, is_a("data.frame"))
+  # column doi exists
+  expect_true("doi"%in%names(df))
+  # column doi does not contain NA
+  expect_that(df$doi )
 }
 
 
 
 deduplicate <- function(df){
-  #' Deduplication of publication entries.
+  #' @title Deduplication of publication entries.
   #' 
   #' Deduplication function that uses a single dataframe and applies a variety
   #' of deduplication functions to subsets of the dataframe.
   #' Required to use before reporting on a subset of publications, so that no bias is created
   #' in the results if a publication is entered multiple times by different groups, eg.
+  #' @param df The dataframe that needs to be deduplicated.
+  #' @return The deduplicated dataframe.
+  #' @export
   # first determine whether there is a mix of multiple source files
   sourcefiles <- df$source %>% as.factor() %>% levels()
   nrecords <- nrow(df)
