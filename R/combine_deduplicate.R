@@ -18,6 +18,8 @@ library(jsonlite)
 library(httr)
 library(magrittr)
 library(ggplot2)
+library(docstring)
+library(testthat)
 
 
 ## read data
@@ -32,42 +34,56 @@ for(i in 1:length(infiles)){
 # bind all together to one large dataframe
 df <- bind_rows(myfiles)
 
-########################################################################
-##### NB!! Note that pure_id is system_id in the new input files! ######
-########################################################################
 
 report <- function(nrecords_post,nrecords,method){
-  cat("records generated:")
-  cat(nrecords_post)
-  cat("\nfrom:")
-  cat(nrecords)
-  cat("\nrecords deleted:")
-  cat(nrecords-nrecords_post)
-  cat("\nduplication method:")
+  cat("Deduplicating by ")
   cat(method)
-  cat("\n")
+  cat(" from ")
+  cat(nrecords)
+  cat(" records, ")
+  cat(nrecords-nrecords_post)
+  cat(" were deleted.")
+  cat(" This df now contains ")
+  cat(nrecords_post)
+  cat(" records.")
+  cat("\n\n")
 }
 
 
-deduplicate_doi <- function(df){
-  #' @title Deduplicate publication entries based on doi
+deduplicate_method <- function(df,method){
+  #' @title Deduplicate publication entries
   #' 
-  #' Deduplication function that takes a dataframe with dois
-  #' and returns the deduplicated dataframe.
-  #' 
+  #' Deduplication function that takes a dataframe and returns
+  #' the deduplicated dataframe based on either the combination of source file and
+  #' their internal ID in that source, or DOI.
+  #' Reports on the deduplication performed.
+  #' @param df The dataframe that needs to be deduplicate
+  #' @param method The deduplication method, can be either "doi" or "internal"
+  #' @return The deduplicated dataframe
   ### tests ###
   # input is a dataframe
   expect_that(df, is_a("data.frame"))
   # column doi exists
-  expect_true("doi"%in%names(df))
+  # expect_true("doi"%in%names(df))
   # column doi does not contain NA
-  expect_that(df$doi )
+  # expect_that(df$doi )
+  ###############
+  nrecords <- nrow(df)
+  if(method == "internal"){
+    df <- distinct(df,system_id,source,.keep_all = T)
+    method_print = "internal ID"
+  } else if(method == "doi"){
+    df <- distinct(df,doi,.keep_all = T)
+    method_print = "DOI" 
+  }
+  nrecords_post <- nrow(df)
+  report(nrecords_post,nrecords,method_print)
+  return(df)
 }
 
 
-
 deduplicate <- function(df){
-  #' @title Deduplication of publication entries.
+  #' @title Deduplication of publication entries
   #' 
   #' Deduplication function that uses a single dataframe and applies a variety
   #' of deduplication functions to subsets of the dataframe.
@@ -75,48 +91,24 @@ deduplicate <- function(df){
   #' in the results if a publication is entered multiple times by different groups, eg.
   #' @param df The dataframe that needs to be deduplicated.
   #' @return The deduplicated dataframe.
-  #' @export
+  #################################
   # first determine whether there is a mix of multiple source files
   sourcefiles <- df$source %>% as.factor() %>% levels()
-  nrecords <- nrow(df)
-  if(length(sourcefiles) < 2){ # in this case, a single source file has been used, so deduplication can be performed on system ID
-    df <- distinct(df,system_id,.keep_all = T)
-    report(nrecords_post,nrecords,"System ID")
+  # if a single source file has been used, deduplication can be performed on system ID
+  if(length(sourcefiles) < 2){ 
+    df <- deduplicate_method(df,method="internal")
   }
   else{
-    df <- df %>%
-      mutate(title_adj = str_to_lower(title),
-           title_adj = str_replace_all(title_adj,"[:punct:]+", ""),
-           title_adj = str_replace_all(title_adj,"[:blank:]+", ""))
     # separate between entries with and without doi
-    # deduplicate entries in the doi dataframe first
     df_nondoi <- df %>% filter(is.na(doi))
-    df_doi <- df %>%
-      filter(!is.na(doi))
-    nrecords <- nrow(df_doi)
-    df_doi <- df_doi %>% distinct(doi,.keep_all = T)
-    nrecords_post <- nrow(df_doi)
-    report(nrecords_post,nrecords,"DOI")
-    # deduplicate by system ID
-    
-    df_nondoi[duplicated(df_nondoi$title_adj),] %>% View()
-    nrecords <- nrow(df_nondoi)
-    df_nondoi <- df_nondoi %>%
-      distinct(title_adj,.keep_all = T)
-    nrecords_post <- nrow(df_nondoi)
-    report(nrecords_post,nrecords,"title")
-    # combine and then duplicate by title
+    df_doi <- df %>% filter(!is.na(doi))
+    # deduplicate both individually
+    df_doi <- deduplicate_method(df_doi,method="doi")
+    df_nondoi <- deduplicate_method(df_nondoi,method="internal")
+    # combine
     df <- full_join(df_doi,df_nondoi)
-    #nrecords <- nrow(df)
-    #df <- df %>%
-    #  distinct(title_adj,.keep_all = T)
-    #nrecords_post <- nrow(df)
-    #report(nrecords_post,nrecords,"both")
   }
   return(df)
 }
 
-
-testdf <- deduplicate(df)
-
-testdf[duplicated(testdf$title_adj),] %>% View()
+df <- deduplicate(df)
