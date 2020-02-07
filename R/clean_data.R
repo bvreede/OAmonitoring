@@ -96,14 +96,9 @@ define_oa_detailed <- function(doaj,vsnu,upw=NA){
 
 #### LOAD AND CLEAN DATA ####
 
-## Pub data
-pub_data <- read_excel(path_pub)
-
 ## Classification data
 doaj <- read_excel(path_doaj)
 vsnu <- read_csv(path_vsnu)
-
-pub_data <- read_excel(path_pub)
 
 ## Renaming columns so they will not have to be adjusted every time we run the script - should be in config file!
 colnames(pub_data)[colnames(pub_data) == id_column] <- "system_id"
