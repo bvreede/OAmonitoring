@@ -120,7 +120,7 @@ report_results <- list()
 for(r in reporting){
   units = str_split(r, ", ")[[1]]
   df_r <- df %>% filter(org_unit%in%units) %>% deduplicate()
-  print(count(df_r,OA_label))
+  report_results[r] <- count(df_r,OA_label)
 }
 
 
