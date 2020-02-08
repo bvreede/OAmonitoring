@@ -75,6 +75,9 @@ for(col in allfiles){
   outpath <- str_replace(fn,"data/","output/")
   outpath <- str_replace(outpath,paste0(".",ext),"_clean.csv")
   write_csv(df,outpath)
+  
+  # remove df from the environment
+  rm(df)
 }
 
 
