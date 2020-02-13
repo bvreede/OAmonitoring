@@ -1,3 +1,6 @@
+source("config/config.R")
+
+
 ## Functions
 
 # cleaning DOIs and ISSN columns
@@ -83,5 +86,26 @@ define_oa_detailed <- function(doaj,vsnu,upw=NA){
   return("CLOSED")
 }
 
+
+## Classification data
+doaj <- read_excel(path_doaj)
+vsnu <- read_csv(path_vsnu)
+
+## Renaming columns so they will not have to be adjusted every time we run the script - should be in config file!
+colnames(doaj)[colnames(doaj) == issn_column_doaj] <- "issn"
+colnames(doaj)[colnames(doaj) == eissn_column_doaj] <- "eissn"
+
+
+## Clean data
+# clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
+doaj$issn <- clean_issn(doaj$issn) 
+doaj$eissn <- clean_issn(doaj$eissn)
+vsnu$DOI <- clean_doi(vsnu$DOI)
+vsnu_doi <- vsnu$DOI[!is.na(vsnu$DOI)]
+
+#### OA LABELLING ####
+## Collect information that can later be used for the classification pipeline.
+doaj_issn <- union(doaj$issn[!is.na(doaj$issn)], # all DOAJ ISSN numbers from print, without NAs
+                   doaj$eissn[!is.na(doaj$eissn)]) # all DOAJ E-ISSN numbers, without NAs
 
 

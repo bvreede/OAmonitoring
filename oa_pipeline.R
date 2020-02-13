@@ -7,19 +7,23 @@ library(httr)
 library(magrittr)
 
 source("R/clean_data.R")
-source("config/config.R")
 
 allfiles <- read_excel("config/config_pub_files.xlsx")
 
-for(fn in allfiles){
+for(col in allfiles){
   # extract file name
-  fn <- fn[allfiles$File_info=="Filename"]
+  fn <- col[allfiles$File_info=="Filename"]
   fn_ext <- str_split(fn,"\\.")[[1]]
+  # test if the column contains NAs; in this case the file will not be read
+  if(sum(is.na(col))>0){
+    warning("The information for file ", fn, " is not filled out. This file cannot be processed.\n")
+    next
+  } 
   # skip filenames without extensions
   # NB this automatically skips the first column
   # if the column 
   if(length(fn_ext) < 2){
-    if(!fn == allfiles[1,1]){
+    if(!fn == allfiles[1,1]){ # this is acceptable with the header.
       warning("The filename ", fn, " does not have an extension. This file cannot be processed.\n")
     }
     next
@@ -27,69 +31,66 @@ for(fn in allfiles){
   # extract extension and put together filename
   ext <- fn_ext[-1]
   fn <- paste0("data/",fn)
-  # open the file
-  if(ext == "csv"){
-    df <- read_delim(fn, delim=";")
-  }
-  else if(ext=="tsv"){
+  # open the file, method depending on the extension
+  if(ext == "csv"){ 
+    # multiple methods are possible, check which one yields the largest no. of columns
+    df1 <- read_delim(fn, delim=";")
+    df2 <- read_delim(fn, delim=",")
+    if(ncol(df1)>ncol(df2)){
+      df <- df1
+    } else{
+      df <- df2
+    }
+    rm(df1,df2)
+  } else if(ext=="tsv"){
     df <- read_delim(fn,delim="\t")
+  } else if(ext=="xls"|ext=="xlsx"){
+    df <- read_excel(fn)
   }
-  df %>% head()
-}
-  # rename
-  colnames(pub_data)[colnames(pub_data) == id_column] <- "system_id"
-  colnames(pub_data)[colnames(pub_data) == title_column] <- "title"
-  colnames(pub_data)[colnames(pub_data) == issn_column] <- "issn"
-  colnames(pub_data)[colnames(pub_data) == doi_column] <- "doi"
   
-  colnames(doaj)[colnames(doaj) == issn_column_doaj] <- "issn"
-  colnames(doaj)[colnames(doaj) == eissn_column_doaj] <- "eissn"
-  # classify
+  # rename column names
+  id_column <- col[allfiles$File_info=="Internal unique identifier"]
+  issn_column <- col[allfiles$File_info=="ISSN"]
+  doi_column <- col[allfiles$File_info=="DOI"]
+  org_column <- col[allfiles$File_info=="Organization unit"]
+  
+  colnames(df)[colnames(df) == id_column] <- "system_id"
+  colnames(df)[colnames(df) == issn_column] <- "issn"
+  colnames(df)[colnames(df) == doi_column] <- "doi"
+  colnames(df)[colnames(df) == org_column] <- "org_unit"
+  
+  # clean columns
+  # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
+  df$issn <- clean_issn(df$issn)
+  df$doi <- clean_doi(df$doi)
+  
+  # classify OA status
+  ## Step 1: DOAJ ISSN matching
+  df$DOAJ_ISSN_match <- df$issn%in%doaj_issn
+  
+  ## Step 2: VSNU DOI matching
+  df$VSNU_doi_match <- df$doi%in%vsnu_doi
+  
   # save
+  outpath <- str_replace(fn,"data/","output/")
+  outpath <- str_replace(outpath,paste0(".",ext),"_clean.csv")
+  write_csv(df,outpath)
+  
+  # remove df from the environment
+  rm(df)
 }
+
+
+
+
 
 
 
 #### LOAD AND CLEAN DATA ####
 
-## Classification data
-doaj <- read_excel(path_doaj)
-vsnu <- read_csv(path_vsnu)
-
-## Renaming columns so they will not have to be adjusted every time we run the script - should be in config file!
 
 
-## Adjust data types
 
-# Set ID as character, so that it will not be treated as a numeral
-pub_data$system_id %<>% as.character
-
-# Set ISSN and OA status as factors because they are fixed variables which we want to analyze.
-pub_data$issn %<>% as.factor
-
-## Clean data
-# clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
-pub_data$issn <- clean_issn(pub_data$issn)
-pub_data$doi <- clean_doi(pub_data$doi)
-
-doaj$issn <- clean_issn(doaj$issn) 
-doaj$eissn <- clean_issn(doaj$eissn)
-
-vsnu$DOI <- clean_doi(vsnu$DOI)
-
-#### OA LABELLING ####
-## Collect information that can later be used for the classification pipeline.
-
-## Step 1: DOAJ ISSN matching
-doaj_issn <- union(doaj$issn[!is.na(doaj$issn)], # all DOAJ ISSN numbers from print, without NAs
-                   doaj$eissn[!is.na(doaj$eissn)]) # all DOAJ E-ISSN numbers, without NAs
-
-pub_data$DOAJ_ISSN_match <- pub_data$issn%in%doaj_issn
-
-## Step 2: VSNU DOI matching
-vsnu_doi <- vsnu$DOI[!is.na(vsnu$DOI)]
-
-pub_data$VSNU_doi_match <- pub_data$doi%in%vsnu_doi
 
 ## Step 3: Unpaywall
 api_csv <- "csv" #indicate here whether you want to load existing data or use the UPW api
