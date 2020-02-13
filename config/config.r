@@ -1,4 +1,6 @@
-path_vsnu <- paste("data/2018/","VSNU-DOIs.csv",sep="")
+# VSNU
+
+path_vsnu <- "data/mockdata_VSNUdeal.xlsx"
 path_doaj <- paste("data/2018/","2018-12-31-DOAJ-schoon.xlsx",sep="")
 path_unpaywall <- paste("data/2018/","unpaywall_2019-03-05.csv",sep="")
 

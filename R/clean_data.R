@@ -1,9 +1,9 @@
-read_ext <- function(fn){
+read_ext <- function(fn, dir="data/"){
   # opening a file, with method depending on the extension
   # extract extension and put together filename
   fn_ext <- str_split(fn,"\\.")[[1]]
   ext <- fn_ext[-1]
-  fn_path <- paste0("data/",fn)
+  fn_path <- paste0(dir,fn)
   
   if(ext == "csv"){ 
     # multiple methods are possible, check which one yields the largest no. of columns

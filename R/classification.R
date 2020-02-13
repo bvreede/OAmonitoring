@@ -1,12 +1,20 @@
 
 # classify OA status
 ## Step 1: DOAJ ISSN matching
-df$DOAJ_ISSN_match <- df$issn%in%doaj_issn
+#df$DOAJ_ISSN_match <- df$issn%in%doaj_issn
 
 ## Step 2: VSNU DOI matching
-df$VSNU_doi_match <- df$doi%in%vsnu_doi
+#df$VSNU_doi_match <- df$doi%in%vsnu_doi
+
+# get all VSNU DOIs
+vsnu <- read_ext(path_vsnu, "")
+vsnu_doi_cleaned <- clean_doi(vsnu$DOI)
 
 
+# match with the VSNU document
+vsnu_match <- function(doi,vsnu_doi=vsnu_doi_cleaned){
+  return(doi%in%vsnu_doi)
+}
 
 # collecting DOI results from Unpaywall using their REST API
 upw_api <- function(doi){
@@ -20,6 +28,8 @@ upw_api <- function(doi){
   result_line <- fromJSON(result_txt,flatten=T)$results
   return(result_line)
 }
+
+
 
 # The following functions try to classify all publications according to their presence in check lists. In sequence:
 ## 1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). 
@@ -76,24 +86,24 @@ define_oa_detailed <- function(doaj,vsnu,upw=NA){
   return("CLOSED")
 }
 
-
-## Classification data
-doaj <- read_excel(path_doaj)
-vsnu <- read_csv(path_vsnu)
-
-## Renaming columns so they will not have to be adjusted every time we run the script - should be in config file!
-colnames(doaj)[colnames(doaj) == issn_column_doaj] <- "issn"
-colnames(doaj)[colnames(doaj) == eissn_column_doaj] <- "eissn"
-
-
-## Clean data
-# clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
-doaj$issn <- clean_issn(doaj$issn) 
-doaj$eissn <- clean_issn(doaj$eissn)
-vsnu$DOI <- clean_doi(vsnu$DOI)
-vsnu_doi <- vsnu$DOI[!is.na(vsnu$DOI)]
-
-#### OA LABELLING ####
-## Collect information that can later be used for the classification pipeline.
-doaj_issn <- union(doaj$issn[!is.na(doaj$issn)], # all DOAJ ISSN numbers from print, without NAs
-                   doaj$eissn[!is.na(doaj$eissn)]) # all DOAJ E-ISSN numbers, without NAs
+# 
+# ## Classification data
+# doaj <- read_excel(path_doaj)
+# vsnu <- read_csv(path_vsnu)
+# 
+# ## Renaming columns so they will not have to be adjusted every time we run the script - should be in config file!
+# colnames(doaj)[colnames(doaj) == issn_column_doaj] <- "issn"
+# colnames(doaj)[colnames(doaj) == eissn_column_doaj] <- "eissn"
+# 
+# 
+# ## Clean data
+# # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
+# doaj$issn <- clean_issn(doaj$issn) 
+# doaj$eissn <- clean_issn(doaj$eissn)
+# vsnu$DOI <- clean_doi(vsnu$DOI)
+# vsnu_doi <- vsnu$DOI[!is.na(vsnu$DOI)]
+# 
+# #### OA LABELLING ####
+# ## Collect information that can later be used for the classification pipeline.
+# doaj_issn <- union(doaj$issn[!is.na(doaj$issn)], # all DOAJ ISSN numbers from print, without NAs
+#                    doaj$eissn[!is.na(doaj$eissn)]) # all DOAJ E-ISSN numbers, without NAs
