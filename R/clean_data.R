@@ -36,6 +36,20 @@ read_ext <- function(fn){
 }
 
 
+column_rename <- function(data,col_config){
+  # rename column names
+  id_column <- col_config[allfiles$File_info=="Internal unique identifier"]
+  issn_column <- col_config[allfiles$File_info=="ISSN"]
+  doi_column <- col_config[allfiles$File_info=="DOI"]
+  org_column <- col_config[allfiles$File_info=="Organization unit"]
+  colnames(data)[colnames(data) == id_column] <- "system_id"
+  colnames(data)[colnames(data) == issn_column] <- "issn"
+  colnames(data)[colnames(data) == doi_column] <- "doi"
+  colnames(data)[colnames(data) == org_column] <- "org_unit"
+  # return cleaned data
+  return(data)
+}
+
 # cleaning DOIs and ISSN columns
 clean_issn <- function(column){
   column <- str_replace(column,'\\s+','') #remove spaces from ISSN
