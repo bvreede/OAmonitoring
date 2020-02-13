@@ -1,0 +1,17 @@
+path_pub <- "data/2018_Monitoring_OA___basislijst_2-aangepast_20190311.xls" 
+path_vsnu <- "data/VSNU-DOIs.csv"
+path_doaj <- "data/2018-12-31-DOAJ-schoon.xlsx"
+path_unpaywall <- "data/unpaywall_2019-03-05.csv"
+
+email <- "?email=b.m.i.vreede@uu.nl" ## Should be in config file!
+
+colnames(pub_data)[colnames(pub_data) == 'ID-1'] <- "system_id"
+colnames(pub_data)[colnames(pub_data) == 'Title of the contribution in original language-2'] <- "title"
+colnames(pub_data)[colnames(pub_data) == 'Journal > ISSN-5'] <- "issn"
+colnames(pub_data)[colnames(pub_data) == 'Electronic version(s) of this work > DOI (Digital Object Identifier)-6'] <- "doi"
+colnames(pub_data)[colnames(pub_data) == 'Electronic version(s) of this work > Document version-8'] <- "electronic_version"
+colnames(pub_data)[colnames(pub_data) == 'Electronic version(s) of this work > Public access to file-9'] <- "public_access"
+colnames(pub_data)[colnames(pub_data) == 'Open Access status-7'] <- "OA_status_pure"
+colnames(pub_data)[colnames(pub_data) == 'Open Access embargo date-10'] <- "embargo_date"
+
+

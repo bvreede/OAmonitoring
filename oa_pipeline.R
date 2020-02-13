@@ -1,5 +1,134 @@
 ## load packages and functions
-source("oa_utilities.R")
+library(tidyverse)
+library(stringr)
+library(readxl)
+library(jsonlite)
+library(httr)
+library(magrittr)
+
+# source scripts with functions and paths
+source("config/config.R")
+source("R/clean_data.R")
+
+allfiles <- read_excel("config/config_pub_files.xlsx")
+
+
+# STEP ONE: CLEAN THE DATASETS AND COMBINE THEM
+
+alldata <- list()
+
+for(col in allfiles){
+  # extract file name and extension
+  fn <- col[allfiles$File_info=="Filename"]
+  fn_ext <- str_split(fn,"\\.")[[1]]
+  
+  # test if the column contains NAs; in this case the file will not be read
+  if(sum(is.na(col))>0){
+    warning("The information for file ", fn, " is not filled out. This file cannot be processed.\n")
+    next
+  } 
+  # skip filenames without extensions
+  # NB this automatically skips the first column with row names
+  if(length(fn_ext) < 2){
+    if(!fn == allfiles[1,1]){ # this is acceptable with the header.
+      warning("The filename ", fn, " does not have an extension. This file cannot be processed.\n")
+    }
+    next
+  }
+  
+  # open the file and adjust the column names to the config input
+  df <- read_ext(fn) %>% column_rename(col)
+
+  # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
+  # also add source file column
+  df <- df %>% mutate(issn = clean_issn(issn),
+                      doi = clean_doi(doi),
+                      source = fn)
+  
+  # save to the alldata list, and remove excess variables
+  alldata[[fn]] <- df
+  rm(df)
+}
+
+df <- bind_rows(alldata)
+write_csv(df,outpath)
+
+
+# STEP TWO: APPLY CLASSIFICATION
+
+
+
+
+
+
+
+
+#### LOAD AND CLEAN DATA ####
+
+
+
+
+
+## Step 3: Unpaywall
+api_csv <- "csv" #indicate here whether you want to load existing data or use the UPW api
+
+# generate a database with unpaywall data using their REST API
+# use all DOIs as input
+alldois <- pub_data$doi[!is.na(pub_data$doi)] # all pub_data dois without NA
+
+# mine unpaywall API for each DOI
+outlist <- list()
+
+for(i in seq_along(alldois)){
+  doi <- alldois[i]
+  if(api_csv=="api"){ # only mine the api if the user wants to renew unpaywall data
+    res <- upw_api(doi)
+    outlist[[i]] <- res
+  }
+}
+
+if(api_csv=="api"){
+  unpaywall <- bind_rows(outlist)
+  # save unpaywall data
+  today <- as.character(Sys.Date())
+  upwname <- paste0("output/unpaywall_",today,".csv")
+  write_csv(unpaywall,upwname)
+} else if(api_csv=="csv"){
+  unpaywall <- read_csv(path_unpaywall)
+}
+
+# ensure unpaywall data is saved as factor
+unpaywall$evidence %<>% as.factor
+unpaywall$free_fulltext_url %<>% as.factor
+unpaywall$license %<>% as.factor
+unpaywall$oa_color %<>% as.factor
+
+# merge publication data with unpaywall
+## CONSIDER JOIN IN UPDATE ##
+pub_data_merge <- left_join(pub_data,unpaywall,by="doi")
+
+#### CLASSIFICATION PIPELINE ####
+## apply the classification function
+pub_data_merge <- mutate(pub_data_merge,
+                         OA_label=mapply(define_oa,
+                                         DOAJ_ISSN_match,
+                                         VSNU_doi_match,
+                                         oa_color))
+
+pub_data_merge <- mutate(pub_data_merge,
+                         OA_label_detail=mapply(define_oa_detailed,
+                                                DOAJ_ISSN_match,
+                                                VSNU_doi_match,
+                                                oa_color))
+
+## turn the results into factors
+pub_data_merge$OA_label %<>% as.factor
+pub_data_merge$OA_label_detail %<>% as.factor
+
+
+
+
+==============
 
 ## source file paths
 #path_pure_uu <- "data/UU-Monitoring_OA-2018-basislijst-report_3119.xls"

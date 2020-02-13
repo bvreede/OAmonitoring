@@ -1,0 +1,12 @@
+.DS_Store
+.Rhistory
+.Rproj.user/
+.Rproj.user
+.RData
+
+data/2018
+data/other
+data/old
+data/gener*
+
+config/~*
