@@ -18,7 +18,7 @@ allfiles <- read_excel("config/config_pub_files.xlsx")
 alldata <- list()
 
 for(col in allfiles){
-  # extract file name and extention
+  # extract file name and extension
   fn <- col[allfiles$File_info=="Filename"]
   fn_ext <- str_split(fn,"\\.")[[1]]
   
@@ -36,29 +36,17 @@ for(col in allfiles){
     next
   }
   
-  df <- read_ext(fn)
-  
-  # rename column names
-  id_column <- col[allfiles$File_info=="Internal unique identifier"]
-  issn_column <- col[allfiles$File_info=="ISSN"]
-  doi_column <- col[allfiles$File_info=="DOI"]
-  org_column <- col[allfiles$File_info=="Organization unit"]
-  
-  colnames(df)[colnames(df) == id_column] <- "system_id"
-  colnames(df)[colnames(df) == issn_column] <- "issn"
-  colnames(df)[colnames(df) == doi_column] <- "doi"
-  colnames(df)[colnames(df) == org_column] <- "org_unit"
-  
-  # clean columns
+  # open the file and adjust the column names to the config input
+  df <- read_ext(fn) %>% column_rename(col)
+
   # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
   # also add source file column
   df <- df %>% mutate(issn = clean_issn(issn),
                       doi = clean_doi(doi),
                       source = fn)
   
+  # save to the alldata list, and remove excess variables
   alldata[[fn]] <- df
-
-  # remove df from the environment
   rm(df)
 }
 
@@ -66,7 +54,7 @@ df <- bind_rows(alldata)
 write_csv(df,outpath)
 
 
-
+# STEP TWO: APPLY CLASSIFICATION
 
 
 
