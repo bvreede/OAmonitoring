@@ -1,7 +1,40 @@
-source("config/config.R")
+# classify OA status
+## Step 1: DOAJ ISSN matching
+df$DOAJ_ISSN_match <- df$issn%in%doaj_issn
+
+## Step 2: VSNU DOI matching
+df$VSNU_doi_match <- df$doi%in%vsnu_doi
+
 
 
 ## Functions
+
+read_ext <- function(fn){
+  # opening a file, with method depending on the extension
+  # extract extension and put together filename
+  fn_ext <- str_split(fn,"\\.")[[1]]
+  ext <- fn_ext[-1]
+  fn_path <- paste0("data/",fn)
+  
+  if(ext == "csv"){ 
+    # multiple methods are possible, check which one yields the largest no. of columns
+    # this is quite hacky, and generates unnecessary warnings. It does work though...
+    df1 <- read_delim(fn_path, delim=";")
+    df2 <- read_delim(fn_path, delim=",")
+    if(ncol(df1)>ncol(df2)){
+      df <- df1
+    } else{
+      df <- df2
+    }
+    rm(df1,df2)
+  } else if(ext=="tsv"){
+    df <- read_delim(fn_path,delim="\t")
+  } else if(ext=="xls"|ext=="xlsx"){
+    df <- read_excel(fn_path)
+  }
+  return(df)
+}
+
 
 # cleaning DOIs and ISSN columns
 clean_issn <- function(column){

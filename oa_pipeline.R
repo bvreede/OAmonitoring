@@ -6,47 +6,37 @@ library(jsonlite)
 library(httr)
 library(magrittr)
 
+# source scripts with functions and paths
+source("config/config.R")
 source("R/clean_data.R")
 
 allfiles <- read_excel("config/config_pub_files.xlsx")
 
+
+# STEP ONE: CLEAN THE DATASETS AND COMBINE THEM
+
+alldata <- list()
+
 for(col in allfiles){
-  # extract file name
+  # extract file name and extention
   fn <- col[allfiles$File_info=="Filename"]
   fn_ext <- str_split(fn,"\\.")[[1]]
+  
   # test if the column contains NAs; in this case the file will not be read
   if(sum(is.na(col))>0){
     warning("The information for file ", fn, " is not filled out. This file cannot be processed.\n")
     next
   } 
   # skip filenames without extensions
-  # NB this automatically skips the first column
-  # if the column 
+  # NB this automatically skips the first column with row names
   if(length(fn_ext) < 2){
     if(!fn == allfiles[1,1]){ # this is acceptable with the header.
       warning("The filename ", fn, " does not have an extension. This file cannot be processed.\n")
     }
     next
   }
-  # extract extension and put together filename
-  ext <- fn_ext[-1]
-  fn <- paste0("data/",fn)
-  # open the file, method depending on the extension
-  if(ext == "csv"){ 
-    # multiple methods are possible, check which one yields the largest no. of columns
-    df1 <- read_delim(fn, delim=";")
-    df2 <- read_delim(fn, delim=",")
-    if(ncol(df1)>ncol(df2)){
-      df <- df1
-    } else{
-      df <- df2
-    }
-    rm(df1,df2)
-  } else if(ext=="tsv"){
-    df <- read_delim(fn,delim="\t")
-  } else if(ext=="xls"|ext=="xlsx"){
-    df <- read_excel(fn)
-  }
+  
+  df <- read_ext(fn)
   
   # rename column names
   id_column <- col[allfiles$File_info=="Internal unique identifier"]
@@ -61,24 +51,23 @@ for(col in allfiles){
   
   # clean columns
   # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
-  df$issn <- clean_issn(df$issn)
-  df$doi <- clean_doi(df$doi)
+  # also add source file column
+  df <- df %>% mutate(issn = clean_issn(issn),
+                      doi = clean_doi(doi),
+                      source = fn)
   
-  # classify OA status
-  ## Step 1: DOAJ ISSN matching
-  df$DOAJ_ISSN_match <- df$issn%in%doaj_issn
-  
-  ## Step 2: VSNU DOI matching
-  df$VSNU_doi_match <- df$doi%in%vsnu_doi
-  
-  # save
-  outpath <- str_replace(fn,"data/","output/")
-  outpath <- str_replace(outpath,paste0(".",ext),"_clean.csv")
-  write_csv(df,outpath)
-  
+  alldata[[fn]] <- df
+
   # remove df from the environment
   rm(df)
 }
+
+df <- bind_rows(alldata)
+write_csv(df,outpath)
+
+
+
+
 
 
 
