@@ -121,7 +121,10 @@ for(r in reporting){
   units = str_split(r, ", ")[[1]]
   df_r <- df %>% filter(org_unit%in%units) %>% deduplicate()
   #report_results[r] <- dplyr::count(df_r,OA_label)
-  dplyr::count(df_r, OA_label) %>% print()
+  #dplyr::count(df_r, OA_label) %>% print()
+  countdata <- data.frame (dplyr::count(df_r, OA_label))
+  outfilename <-paste("./output/",r,"countdata.csv")
+  write_csv(countdata,outfilename)
 }
 
 
