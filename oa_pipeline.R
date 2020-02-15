@@ -10,10 +10,9 @@ library(here)
 # source scripts with functions and paths
 source("config/config.R")
 source("R/clean_data.R")
-source("R/classification.R")
+
 
 allfiles <- read_excel("config/config_pub_files.xlsx")
-
 
 
 # STEP ONE: CLEAN THE DATASETS AND COMBINE THEM
@@ -50,14 +49,18 @@ for(col in allfiles){
   
   # save to the alldata list, and remove excess variables
   alldata[[fn]] <- df
-  rm(df)
 }
 
+rm(df, fn, fn_ext, col)
+
 df <- bind_rows(alldata)
-write_csv(df,outpath)
 
 
 # STEP TWO: APPLY CLASSIFICATION
+
+source("R/classification.R")
+
+
 df <- df %>% mutate(
   vsnu = vsnu_match(doi)
 )
