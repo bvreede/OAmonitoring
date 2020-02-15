@@ -42,7 +42,32 @@ column_rename <- function(data,col_config){
 # cleaning DOIs and ISSN columns
 clean_issn <- function(column){
   column <- str_replace(column,'\\s+','') #remove spaces from ISSN
-  column <- str_replace(column,'-','') #remove - from ISSN
+  # ensure ISSN has two elements, with a hyphen in between
+  if(column[5]!='-'){
+    column <- paste0(column[1:4],"-",column[5:8])
+  }
+  return(column)
+}
+
+number_to_issn <- function(number){
+  # ensure ISSN has two elements, with a hyphen in between
+  if(is.na(number)){
+    return(NA)
+  }
+  if(str_length(number)!=8){
+    return(NA)
+  }
+  part1 <- str_sub(number, start = 1L, end = 4L) 
+  part2 <- str_sub(number, start = 5L, end = 8L) 
+  return(paste0(part1,"-",part2))
+}
+
+# cleaning DOIs and ISSN columns
+clean_issn <- function(column){
+  column <- str_replace(column,'\\s+','') #remove spaces from ISSN
+  column <- str_replace_all(column,'[:punct:]','') #remove all punctuation
+  # ensure ISSN has two elements, with a hyphen in between
+  column <- mapply(number_to_issn,column)
   return(column)
 }
 
