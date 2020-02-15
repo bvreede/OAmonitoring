@@ -32,14 +32,30 @@ doaj_api <- function(issn){
   return(result_line)
 }
 
+doaj_api_sleep <- function(issn){
+  #' This function uses an issn to mine the
+  #' DOAJ API (at doaj.org/api/v1/).
+  #' 
+  #'
+  Sys.sleep(1) # requests for this api are limited at 2 per second, so the request is slowed down.
+  api <- "https://doaj.org/api/v1/search/journals/issn:"
+  query <- paste0(api,issn)
+  result <- GET(query) %>% 
+    content(as="text",encoding="UTF-8")
+  result_line <- fromJSON(result,flatten=T)$results
+  return(result_line)
+}
+
 issnlist <- list()
 for(i in seq_along(all_issn)){
   issn <- all_issn[i]
-  res <- doaj_api(issn)
+  res <- doaj_api_sleep(issn)
   issnlist[[i]] <- res
 }
 
-issndf <- bind_rows(issnlist)
+
+issnlist2 <- issnlist
+issndf <- bind_rows(issnlist) ## How to deal with error issns?
 
 
 
