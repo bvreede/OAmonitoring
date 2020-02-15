@@ -1,15 +1,50 @@
+# CLASSIFICATION STEP ONE:
+# VSNU DEAL AND DOAJ REGISTRY
+# 
+# 
 
-# classify OA status
-## Step 1: DOAJ ISSN matching
-#df$DOAJ_ISSN_match <- df$issn%in%doaj_issn
-
-## Step 2: VSNU DOI matching
-#df$VSNU_doi_match <- df$doi%in%vsnu_doi
 
 # get all VSNU DOIs
 vsnu <- read_ext(path_vsnu, "")
 vsnu_doi_cleaned <- clean_doi(vsnu$DOI)
 
+# get all ISSNs in the dataset
+all_issn <- df$issn %>% unique()
+all_issn <- all_issn[!is.na(all_issn)]
+
+
+doaj_api <- function(issn){
+  #' This function uses an issn to mine the
+  #' DOAJ API (at doaj.org/api/v1/).
+  #' 
+  #'
+  api <- "https://doaj.org/api/v1/search/journals/issn:"
+  query <- paste0(api,issn)
+  result_line <- NA
+  tryCatch({
+    result <- GET(query) %>% 
+      content(as="text",encoding="UTF-8")
+    result_line <- fromJSON(result,flatten=T)$results
+  }, error = function(e){
+    Sys.sleep(10)
+    print(e)
+  })
+  return(result_line)
+}
+
+issnlist <- list()
+for(i in seq_along(all_issn)){
+  issn <- all_issn[i]
+  res <- doaj_api(issn)
+  issnlist[[i]] <- res
+}
+
+issndf <- bind_rows(issnlist)
+
+
+
+mapply(doaj_api,all_issn)
+outlist[[i]] <- res
 
 # match with the VSNU document
 vsnu_match <- function(doi,vsnu_doi=vsnu_doi_cleaned){
