@@ -6,6 +6,7 @@ library(jsonlite)
 library(httr)
 library(magrittr)
 library(here)
+library(lubridate)
 
 # source scripts with functions and paths
 source("config/config.R")
@@ -47,24 +48,37 @@ for(col in allfiles){
                       doi = clean_doi(doi),
                       source = fn)
   
-  # save to the alldata list, and remove excess variables
+  # save to the alldata list
   alldata[[fn]] <- df
 }
 
+# remove excess variables, bind to dataframe
 rm(df, fn, fn_ext, col)
-
 df <- bind_rows(alldata)
+rm(alldata)
 
 
 # STEP TWO: APPLY CLASSIFICATION
 
 source("R/classification.R")
+# get VSNU data
+vsnu_doi_cleaned <- get_vsnu(path_vsnu)
 
+# get DOAJ data
+doajdf <- api_to_df(df, "doaj")
+filename <- paste0("data/clean/", "doaj_from_issn_", lubridate::today(), ".csv")
+write_csv(doajdf, filename)
 
-df <- df %>% mutate(
-  vsnu = vsnu_match(doi)
-)
+# get UPW data
+upwdf <- api_to_df(df, "upw")
+filename <- paste0("data/clean/", "upw_from_doi_", lubridate::today(), ".csv")
+write_csv(upwdf, filename)
 
+# add match info to the dataframe
+df <- df %>% 
+  mutate(vsnu = vsnu_match(doi)) %>%
+  full_join(doajdf, by=c("issn", "bibjson.identifier")) %>% # this does not work; issn is in bibjson.identifier, but that is in list format
+  full_join(upwdf, by="doi")
 
 
 
