@@ -1,43 +1,37 @@
 # CLASSIFICATION STEP ONE:
-# VSNU DEAL AND DOAJ REGISTRY
+# OBTAINING INFORMATION:
+# VSNU DEAL 
+# DOAJ REGISTRY
+# UNPAYWALL
 # 
 # 
 
+### VSNU DEAL
+get_vsnu <- function(path){
+  # get all VSNU DOIs
+  vsnu <- read_ext(path, "")
+  vsnu_doi_cleaned <- clean_doi(vsnu$DOI)
+  return(vsnu_doi_cleaned)
+}
 
-# get all VSNU DOIs
-vsnu <- read_ext(path_vsnu, "")
-vsnu_doi_cleaned <- clean_doi(vsnu$DOI)
+# match with the VSNU document
+vsnu_match <- function(doi,vsnu_doi=vsnu_doi_cleaned){
+  return(doi%in%vsnu_doi)
+}
 
-# get all ISSNs in the dataset
-all_issn <- df$issn %>% unique()
-all_issn <- all_issn[!is.na(all_issn)]
-
+extract_issn <- function(column){
+  # get all ISSNs in the dataset
+  all_issn <- column %>% unique()
+  all_issn <- all_issn[!is.na(all_issn)]
+  return(all_issn)
+}
 
 doaj_api <- function(issn){
   #' This function uses an issn to mine the
   #' DOAJ API (at doaj.org/api/v1/).
-  #' 
+  #' The entry for this ISSN in the DOAJ is returned.
   #'
-  api <- "https://doaj.org/api/v1/search/journals/issn:"
-  query <- paste0(api,issn)
-  result_line <- NA
-  tryCatch({
-    result <- GET(query) %>% 
-      content(as="text",encoding="UTF-8")
-    result_line <- fromJSON(result,flatten=T)$results
-  }, error = function(e){
-    Sys.sleep(10)
-    print(e)
-  })
-  return(result_line)
-}
-
-doaj_api_sleep <- function(issn){
-  #' This function uses an issn to mine the
-  #' DOAJ API (at doaj.org/api/v1/).
-  #' 
-  #'
-  Sys.sleep(1) # requests for this api are limited at 2 per second, so the request is slowed down.
+  Sys.sleep(0.6) # requests for this api are limited at 2 per second, so the request is slowed down.
   api <- "https://doaj.org/api/v1/search/journals/issn:"
   query <- paste0(api,issn)
   result <- GET(query) %>% 
@@ -46,32 +40,30 @@ doaj_api_sleep <- function(issn){
   return(result_line)
 }
 
-issnlist <- list()
-for(i in seq_along(all_issn)){
-  issn <- all_issn[i]
-  res <- doaj_api_sleep(issn)
-  issnlist[[i]] <- res
+make_issn_df <- function(df){
+  #' Using the doaj api mine function, all
+  #' ISSN numbers in a vector are queried, and a dataframe
+  #' of their information in the DOAJ is
+  #' returned.
+  #' 
+  all_issn <- extract_issn(df$issn)
+  
+  issnlist <- list()
+  for(i in seq_along(all_issn)){
+    issn <- all_issn[i]
+    issnlist[[i]] <- doaj_api(issn)
+  }
+  issndf <- bind_rows(issnlist)
+  return(issndf)
 }
 
 
-issnlist2 <- issnlist
-issndf <- bind_rows(issnlist) ## How to deal with error issns?
 
-
-
-mapply(doaj_api,all_issn)
-outlist[[i]] <- res
-
-# match with the VSNU document
-vsnu_match <- function(doi,vsnu_doi=vsnu_doi_cleaned){
-  return(doi%in%vsnu_doi)
-}
-
-# collecting DOI results from Unpaywall using their REST API
-upw_api <- function(doi){
+upw_api <- function(doi,email = email_address){
+  #' collecting DOI results from Unpaywall using their REST API
   # compile query to send to unpaywall
   api <- "api.unpaywall.org/"
-  email <- paste("?email=",email_address,sep="") 
+  email <- paste("?email=",email,sep="") 
   query <- paste0(api,doi,email)
   result <- GET(query)
   # resolve query results and transform to a line that can be added to a df
@@ -79,6 +71,10 @@ upw_api <- function(doi){
   result_line <- fromJSON(result_txt,flatten=T)$results
   return(result_line)
 }
+
+
+
+
 
 
 
