@@ -214,19 +214,8 @@ umcu_merge <- mutate(umcu_merge,
                                      OA_status_pure,
                                      pure_green))
 
-## turn the results into factors
-uu_merge$OA_label %<>% as.factor
-umcu_merge$OA_label %<>% as.factor
-uu_merge$OA_label_detail %<>% as.factor
-umcu_merge$OA_label_detail %<>% as.factor
 
 
-#### RESULTING TABLES AND FIGURES ####
-
-# Merge both documents
-all_pubs <- full_join(uu_merge,umcu_merge)
-all_pubs$org_unit %<>% as.factor
-all_pubs$OA_label_detail %<>% as.factor
 
 # Make a field that indicates whether information is available.
 # Information is available when there is a DOI, or when there is a confirmed VSNU ISSN.
