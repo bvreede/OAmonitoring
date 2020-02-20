@@ -19,12 +19,16 @@ vsnu_match <- function(doi,vsnu_doi=vsnu_doi_cleaned){
   return(doi%in%vsnu_doi)
 }
 
-extract_issn <- function(column){
-  # get all ISSNs in the dataset
-  all_issn <- column %>% unique()
-  all_issn <- all_issn[!is.na(all_issn)]
-  return(all_issn)
+extract_uniques <- function(column){
+  #' Uses unique and NA removal to retrieve
+  #' a vector of unique entries in a column.
+  #' This is useful when mining an API, trying
+  #' to minimize the number of calls.
+  all_entries <- column %>% unique()
+  all_entries <- all_entries[!is.na(all_entries)]
+  return(all_entries)
 }
+
 
 doaj_api <- function(issn){
   #' This function uses an issn to mine the
@@ -40,22 +44,6 @@ doaj_api <- function(issn){
   return(result_line)
 }
 
-make_issn_df <- function(df){
-  #' Using the doaj api mine function, all
-  #' ISSN numbers in a vector are queried, and a dataframe
-  #' of their information in the DOAJ is
-  #' returned.
-  #' 
-  all_issn <- extract_issn(df$issn)
-  
-  issnlist <- list()
-  for(i in seq_along(all_issn)){
-    issn <- all_issn[i]
-    issnlist[[i]] <- doaj_api(issn)
-  }
-  issndf <- bind_rows(issnlist)
-  return(issndf)
-}
 
 
 
@@ -74,6 +62,31 @@ upw_api <- function(doi,email = email_address){
 
 
 
+api_to_df <- function(df, which_info){
+  #' Using an API mining  function, query all unique
+  #' entries in a column, and return a data frame
+  #' with their results.
+  #' 
+  #' @param df
+  #' @param which_info Either "doaj" or "upw"
+  if(which_info == "doaj"){
+    all_entries <- extract_uniques(df$issn)
+  }else if(which_info == "upw"){
+    all_entries <- extract_uniques(df$doi)
+  }
+  
+  collect <- list()
+  for(i in seq_along(all_entries)){
+    entry <- all_entries[i]
+    if(which_info == "doaj"){
+      collect[[i]] <- doaj_api(entry)
+    } else if(which_info == "upw"){
+      collect[[i]] <- upw_api(entry)
+    }
+  }
+  collectdf <- bind_rows(collect)
+  return(collectdf)
+}
 
 
 
