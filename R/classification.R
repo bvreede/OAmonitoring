@@ -29,7 +29,6 @@ extract_uniques <- function(column){
   return(all_entries)
 }
 
-
 doaj_api <- function(issn){
   #' This function uses an issn to mine the
   #' DOAJ API (at doaj.org/api/v1/).
@@ -43,8 +42,6 @@ doaj_api <- function(issn){
   result_line <- fromJSON(result,flatten=T)$results
   return(result_line)
 }
-
-
 
 
 upw_api <- function(doi,email = email_address){
@@ -68,7 +65,9 @@ api_to_df <- function(df, which_info){
   #' with their results.
   #' 
   #' @param df
-  #' @param which_info Either "doaj" or "upw"
+  #' @param which_info What api will be mined? Either "doaj" or "upw" (unpaywall).
+  #' 
+  # extract unique values before mining the api
   if(which_info == "doaj"){
     all_entries <- extract_uniques(df$issn)
   }else if(which_info == "upw"){
