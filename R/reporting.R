@@ -112,6 +112,18 @@ deduplicate <- function(df){
 }
 
 
+infocheck <- function(df,checkthese){
+  # checks of the percentage of missing information in a df does not exceed 5%
+  info <- df$information
+  f_mis <- sum(info==F)/length(info)
+  if(f_mis>0.05){
+    checkthese <- rbind(checkthese,filter(df,information==F))
+  }
+  return(checkthese)
+}
+
+
+
 reporting <- read_file("./config/rapportage_faculteit.txt") %>% str_split("\n")
 reporting <- reporting[[1]]
 
@@ -128,6 +140,90 @@ for(r in reporting){
 }
 
 
-#df <- deduplicate(df)
+
+
+
+#### BELOW TAKEN FROM PIPELINE ####
+
+### Reporting:
+# make subselection
+# perform deduplication
+# report fraction of absent information
+## if above 5% of total: give a warning, and put the entries in a df for manual check
+# report OA:
+## total number of publications in four categories
+
+
+
+# initialize a df with publications-to-check
+checkthese <- NULL
+# initialize lists to collect results
+allresults <- list()
+
+
+
+
+
+### ALL PUBLICATIONS ###
+all_pubs_report <- deduplicate(all_pubs)
+checkthese <- infocheck(all_pubs_report,checkthese)
+allresults[["All publications"]] <- c(table(all_pubs_report$OA_label),table(all_pubs_report$OA_label_detail))
+
+
+### PER FACULTY ####
+all_faculties <- levels(all_pubs$org_unit)
+all_faculties <- all_faculties[c(str_which(all_faculties, "Faculteit"),str_which(all_faculties,"UMC Utrecht"))]
+
+for(f in all_faculties){
+  subset <- filter(all_pubs, org_unit==f)
+  subset_report <- deduplicate(subset)
+  checkthese <- infocheck(subset,checkthese)
+  allresults[[f]] <- c(table(subset_report$OA_label),table(subset_report$OA_label_detail))
+}
+
+### PER HOOP-AREA ###
+HOOP <- read_excel("data/HOOPgebieden-test.xlsx")
+colnames(HOOP)[colnames(HOOP) == 'Contributors > Organisations > Organisational unit-0'] <- "org_unit"
+
+hoop_areas <- levels(as.factor(HOOP$HOOP))
+hoop_areas <- hoop_areas[hoop_areas!="n.v.t."]
+
+for(h in hoop_areas){
+  # which departments are included?
+  depts <- filter(HOOP, HOOP==h) %>% pull(org_unit)
+  subset <- filter(all_pubs, org_unit%in%depts)
+  subset_report <- deduplicate(subset)
+  # save records for manual checks in case incomplete information exceeds 5%
+  checkthese <- infocheck(subset,checkthese)
+  allresults[[h]] <- c(table(subset_report$OA_label),table(subset_report$OA_label_detail))
+}
+
+allresults <- bind_rows(!!!allresults, .id="id")
+checkthese <- deduplicate(checkthese)
+
+lbls <- c("CLOSED","GOLD","GREEN","HYBRID")
+neworder <- c(1,3,4,2)
+piecols <- c("gray88","gold1","chartreuse3","orange3")
+piecols <- piecols[neworder]
+
+## MAKE PIECHARTS ## 
+for(n in 1:nrow(allresults)){
+  title <- allresults[n,"id"]
+  slices <- unlist(allresults[n,lbls],use.names=F)
+  ns <- paste0("n=",slices)
+  labs <- paste(lbls,ns)
+  # reorder
+  ns <- ns[neworder]
+  labs <- labs[neworder]
+  slices <- slices[neworder]
+  # name
+  ttl <- str_replace(title," ","_")
+  ttl <- str_replace(ttl,"&","en")
+  fn <- paste0("img/",ttl,".png")
+  png(filename=fn,width=750,height=750,res=130)
+  pie(slices,labels=ns,main=title,init.angle=90,col=piecols,border=0)
+  dev.off()
+}
+
 
 
