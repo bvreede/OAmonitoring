@@ -12,6 +12,10 @@ library(lubridate)
 source("config/config.R")
 source("R/clean_data.R")
 
+# Generate output folders
+dir.create("data/clean")
+
+
 
 allfiles <- read_excel("config/config_pub_files.xlsx")
 
@@ -65,14 +69,12 @@ source("R/classification.R")
 vsnu_doi_cleaned <- get_vsnu(path_vsnu)
 
 # get DOAJ data
-doajdf <- api_to_df(df, "doaj")
-filename <- paste0("data/clean/", "doaj_from_issn_", lubridate::today(), ".csv")
-write_csv(doajdf, filename)
+doajdf <- doaj_pipeline(df)
 
 # get UPW data
-upwdf <- api_to_df(df, "upw")
-filename <- paste0("data/clean/", "upw_from_doi_", lubridate::today(), ".csv")
-write_csv(upwdf, filename)
+upwdf <- upw_pipeline(df)
+
+
 
 # add match info to the dataframe
 df <- df %>% 
