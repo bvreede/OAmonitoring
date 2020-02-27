@@ -70,8 +70,10 @@ api_to_df <- function(df, which_info){
   # extract unique values before mining the api
   if(which_info == "doaj"){
     all_entries <- extract_uniques(df$issn)
+    cat("Mining the DOAJ api...")
   }else if(which_info == "upw"){
     all_entries <- extract_uniques(df$doi)
+    cat("Mining the Unpaywall api...")
   }
   
   collect <- list()
@@ -87,6 +89,47 @@ api_to_df <- function(df, which_info){
   return(collectdf)
 }
 
+
+process_doaj <- function(df){
+  #' Specifically used to process the data frame
+  #' that results from a doaj mining query.
+  #' ISSN numbers are in a nested format, 
+  #' they need to be un-nested.
+  #' For the ease of future processing, the ISSN
+  #' columns are renamed.
+  df <- df %>%
+    # unnest the issn information in the bibjson.identifier column
+    unnest(bibjson.identifier, keep_empty = T, names_sep="_") %>%
+    rename(issn = bibjson.identifier_id,
+           issn_type = bibjson.identifier_type)
+  return(df)
+}
+
+save_apicollect <- function(df, which_info){
+  # remove list columns so the data can be saved
+  df <- df %>% select_if(is.atomic)
+  basename <- case_when(
+    which_info == "doaj" ~ "doaj_from_issn_",
+    which_info == "upw" ~ "upw_from_doi_",
+    TRUE ~ "unknown_info_")
+  filename <- paste0("data/clean/", basename, lubridate::today(), ".csv")
+  write_csv(df, filename)
+}
+
+doaj_pipeline <- function(df){
+  df <- df %>% 
+    api_to_df("doaj") %>%
+    process_doaj()
+  save_apicollect(df, "doaj")
+  return(df)
+}
+
+upw_pipeline <- function(df){
+  df <- df %>% 
+    api_to_df("upw")
+  save_apicollect(df, "upw")
+  return(df)
+}
 
 
 
