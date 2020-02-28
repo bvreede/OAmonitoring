@@ -148,6 +148,16 @@ apply_matches <- function(df){
 }
 
 # classify based on the information acquired
+# All publications are classified according to their presence in check lists. In sequence:
+## 1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). 
+##    If the journal matches, the publication is Gold OA
+## 2. match the DOI with a list obtained from VSNU. 
+##    If the journal matches, the publication is Hybrid OA
+## 3. obtain the OA status from Unpaywall. 
+##    If the status is 'gold' or 'bronze', the publication is Hybrid OA
+##    If the status is 'green', the publication is Green OA
+# NB in the classification pipeline these labels will be applied in sequence
+# Thus, e.g. if ISSN matches DOAJ but Unpaywall says 'green', the label will still be Gold OA.
 classify_oa <- function(df){
   df <- df %>%
     apply_matches() %>%
@@ -158,72 +168,13 @@ classify_oa <- function(df){
         oa_color_upw == "bronze" ~ "HYBRID",
         oa_color_upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
         oa_color_upw == "green" ~ "GREEN",
+        oa_color_upw == "closed" ~ "CLOSED",
         TRUE ~ "CLOSED"),
       OA_label_explainer = case_when(
         doaj ~ "DOAJ",
         vsnu ~ "VSNU",
-        oa_color_upw %in% c("bronze","gold","green") ~ "UPW",
+        oa_color_upw %in% c("bronze","gold","green","closed") ~ "UPW",
         TRUE ~ "NONE")
     )
   return(df)
 }
-
-
-
-
-# The following functions try to classify all publications according to their presence in check lists. In sequence:
-## 1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). 
-##    If the journal matches, the publication is Gold OA
-## 2. match the DOI with a list obtained from VSNU. 
-##    If the journal matches, the publication is Hybrid OA
-## 3. obtain the OA status from Unpaywall. 
-##    If the status is 'gold' or 'bronze', the publication is Hybrid OA
-##    If the status is 'green', the publication is Green OA
-# NB in the classification pipeline these labels will be applied in sequence
-# Thus, e.g. if ISSN matches DOAJ but Unpaywall says 'green', the label will still be Gold OA.
-
-
-define_oa_detailed <- function(doaj,vsnu,upw=NA){
-  ## DOAJ and VSNU: DOAJ means gold, VSNU deal list means hybrid
-  if(doaj){
-    return("GOLD")
-  }
-  if(vsnu){
-    return("HYBRID VSNU")
-  }
-  ## UNPAYWALL: resolve to hybrid or green
-  if(!is.na(upw)){
-    if(upw=="bronze"){
-      return("HYBRID UPW BRONZE") 
-    }
-    if(upw=="gold"){
-      return("HYBRID UPW GOLD")
-    }
-    if(upw=="green"){
-      return("GREEN UPW")
-    }
-  }
-  return("CLOSED")
-}
-
-# 
-# ## Classification data
-# doaj <- read_excel(path_doaj)
-# vsnu <- read_csv(path_vsnu)
-# 
-# ## Renaming columns so they will not have to be adjusted every time we run the script - should be in config file!
-# colnames(doaj)[colnames(doaj) == issn_column_doaj] <- "issn"
-# colnames(doaj)[colnames(doaj) == eissn_column_doaj] <- "eissn"
-# 
-# 
-# ## Clean data
-# # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
-# doaj$issn <- clean_issn(doaj$issn) 
-# doaj$eissn <- clean_issn(doaj$eissn)
-# vsnu$DOI <- clean_doi(vsnu$DOI)
-# vsnu_doi <- vsnu$DOI[!is.na(vsnu$DOI)]
-# 
-# #### OA LABELLING ####
-# ## Collect information that can later be used for the classification pipeline.
-# doaj_issn <- union(doaj$issn[!is.na(doaj$issn)], # all DOAJ ISSN numbers from print, without NAs
-#                    doaj$eissn[!is.na(doaj$eissn)]) # all DOAJ E-ISSN numbers, without NAs
