@@ -47,7 +47,7 @@ doaj_api <- function(issn){
 upw_api <- function(doi,email = email_address){
   #' collecting DOI results from Unpaywall using their REST API
   # compile query to send to unpaywall
-  api <- "api.unpaywall.org/"
+  api <- "http://api.unpaywall.org/"
   email <- paste("?email=",email,sep="") 
   query <- paste0(api,doi,email)
   result <- GET(query)
