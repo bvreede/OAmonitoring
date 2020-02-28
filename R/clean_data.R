@@ -78,3 +78,17 @@ clean_doi <- function(column){
   column <- tolower(column) #Change DOI to lowercase only
   column <- str_replace(column,",.+","") #remove duplicate DOIs separated with a comma
 }
+
+
+open_clean <- function(fn){
+  # open the file and adjust the column names to the config input
+  df <- read_ext(fn) %>% column_rename(col)
+  
+  # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
+  # also add source file column
+  df <- df %>% mutate(issn = clean_issn(issn),
+                      doi = clean_doi(doi),
+                      source = fn)
+  
+  return(df)
+}

@@ -43,14 +43,7 @@ for(col in allfiles){
     next
   }
   
-  # open the file and adjust the column names to the config input
-  df <- read_ext(fn) %>% column_rename(col)
-
-  # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
-  # also add source file column
-  df <- df %>% mutate(issn = clean_issn(issn),
-                      doi = clean_doi(doi),
-                      source = fn)
+  df <- open_clean(fn)
   
   # save to the alldata list
   alldata[[fn]] <- df
