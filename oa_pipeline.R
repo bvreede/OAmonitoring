@@ -42,11 +42,9 @@ for(col in allfiles){
     }
     next
   }
-  
-  df <- open_clean(fn)
-  
-  # save to the alldata list
-  alldata[[fn]] <- df
+
+  # open the file, clean columns, and save to the alldata list
+  alldata[[fn]] <- open_clean(fn)
 }
 
 # remove excess variables, bind to dataframe
