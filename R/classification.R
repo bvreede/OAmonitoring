@@ -100,7 +100,8 @@ process_doaj <- function(df){
     # unnest the issn information in the bibjson.identifier column
     unnest(bibjson.identifier, keep_empty = T, names_sep="_") %>%
     rename(issn = bibjson.identifier_id,
-           issn_type = bibjson.identifier_type)
+           issn_type = bibjson.identifier_type) %>%
+    filter(lubridate::year(created_date) <= report_year)
   return(df)
 }
 
