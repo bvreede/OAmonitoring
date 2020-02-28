@@ -110,7 +110,7 @@ save_df <- function(df, which_info){
   basename <- case_when(
     which_info == "doaj" ~ "doaj_from_issn_",
     which_info == "upw" ~ "upw_from_doi_",
-    which_info == "all" ~ "complete_dataframe_"
+    which_info == "all" ~ "complete_dataframe_",
     TRUE ~ "unknown_info_")
   filename <- paste0("data/clean/", basename, lubridate::today(), ".csv")
   write_csv(df, filename)
