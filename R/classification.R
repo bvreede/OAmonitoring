@@ -104,12 +104,13 @@ process_doaj <- function(df){
   return(df)
 }
 
-save_apicollect <- function(df, which_info){
+save_df <- function(df, which_info){
   # remove list columns so the data can be saved
   df <- df %>% select_if(is.atomic)
   basename <- case_when(
     which_info == "doaj" ~ "doaj_from_issn_",
     which_info == "upw" ~ "upw_from_doi_",
+    which_info == "all" ~ "complete_dataframe_"
     TRUE ~ "unknown_info_")
   filename <- paste0("data/clean/", basename, lubridate::today(), ".csv")
   write_csv(df, filename)
@@ -119,14 +120,14 @@ doaj_pipeline <- function(df){
   df <- df %>% 
     api_to_df("doaj") %>%
     process_doaj()
-  save_apicollect(df, "doaj")
+  save_df(df, "doaj")
   return(df)
 }
 
 upw_pipeline <- function(df){
   df <- df %>% 
     api_to_df("upw")
-  save_apicollect(df, "upw")
+  save_df(df, "upw")
   return(df)
 }
 
@@ -176,5 +177,6 @@ classify_oa <- function(df){
         oa_color_upw %in% c("bronze","gold","green","closed") ~ "UPW",
         TRUE ~ "NONE")
     )
+  save_df(df, "all")
   return(df)
 }
