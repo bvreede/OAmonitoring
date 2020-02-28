@@ -74,30 +74,9 @@ doajdf <- doaj_pipeline(df)
 # get UPW data
 upwdf <- upw_pipeline(df)
 
+# perform the classification
+df <- classify_oa(df)
 
-
-# add match info to the dataframe
-df <- df %>% 
-  mutate(vsnu = vsnu_match(doi)) %>%
-  left_join(doajdf, by=c("issn", "bibjson.identifier")) %>% # this does not work; issn is in bibjson.identifier, but that is in list format
-  left_join(upwdf, by="doi")
-
-
-
-
-#### CLASSIFICATION PIPELINE ####
-## apply the classification function
-pub_data_merge <- mutate(pub_data_merge,
-                         OA_label=mapply(define_oa,
-                                         DOAJ_ISSN_match,
-                                         VSNU_doi_match,
-                                         oa_color))
-
-pub_data_merge <- mutate(pub_data_merge,
-                         OA_label_detail=mapply(define_oa_detailed,
-                                                DOAJ_ISSN_match,
-                                                VSNU_doi_match,
-                                                oa_color))
 
 
 
@@ -182,39 +161,6 @@ umcu_merge <- left_join(pure_umcu,unpaywall,by="doi")
 
 
 
-#### CLASSIFICATION PIPELINE ####
-## apply the classification function
-uu_merge <- mutate(uu_merge,
-                   OA_label=mapply(define_oa,
-                                   DOAJ_ISSN_match,
-                                   VSNU_doi_match,
-                                   oa_color,
-                                   OA_status_pure,
-                                   pure_green,
-                                   manual))
-umcu_merge <- mutate(umcu_merge,
-                     OA_label=mapply(define_oa,
-                                     DOAJ_ISSN_match,
-                                     VSNU_doi_match,
-                                     oa_color,
-                                     OA_status_pure,
-                                     pure_green))
-
-uu_merge <- mutate(uu_merge,
-                   OA_label_detail=mapply(define_oa_detailed,
-                                   DOAJ_ISSN_match,
-                                   VSNU_doi_match,
-                                   oa_color,
-                                   OA_status_pure,
-                                   pure_green,
-                                   manual))
-umcu_merge <- mutate(umcu_merge,
-                     OA_label_detail=mapply(define_oa_detailed,
-                                     DOAJ_ISSN_match,
-                                     VSNU_doi_match,
-                                     oa_color,
-                                     OA_status_pure,
-                                     pure_green))
 
 
 

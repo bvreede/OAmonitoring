@@ -70,13 +70,12 @@ api_to_df <- function(df, which_info){
   # extract unique values before mining the api
   if(which_info == "doaj"){
     all_entries <- extract_uniques(df$issn)
-    cat("Mining the DOAJ api...")
   }else if(which_info == "upw"){
     all_entries <- extract_uniques(df$doi)
-    cat("Mining the Unpaywall api...")
+    
   }
-  
   collect <- list()
+  cat(paste("Mining the", which_info, "api..."))
   for(i in seq_along(all_entries)){
     entry <- all_entries[i]
     if(which_info == "doaj"){
@@ -131,6 +130,45 @@ upw_pipeline <- function(df){
   return(df)
 }
 
+# match issns with their existence in DOAJ
+doaj_match <- function(issn, doajissn = doajdf$issn){
+  return(issn%in%doajissn)
+}
+
+# add matches info to the dataframe
+apply_matches <- function(df){
+  df <- df %>% 
+    mutate(vsnu = vsnu_match(doi),
+           doaj = doaj_match(issn)) %>%
+    # it is possible that oa_color already exists. This is the crucial column from Unpaywall,
+    # so we ensure here that the upw column gets labeled with _upw
+    left_join(upwdf, by="doi", suffix = c("","_upw")) %>% 
+    rename(oa_color_upw = oa_color) 
+  return(df)
+}
+
+# classify based on the information acquired
+classify_oa <- function(df){
+  df <- df %>%
+    apply_matches() %>%
+    mutate(
+      OA_label = case_when(
+        doaj ~ "GOLD",
+        vsnu ~ "HYBRID",
+        oa_color_upw == "bronze" ~ "HYBRID",
+        oa_color_upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
+        oa_color_upw == "green" ~ "GREEN",
+        TRUE ~ "CLOSED"),
+      OA_label_explainer = case_when(
+        doaj ~ "DOAJ",
+        vsnu ~ "VSNU",
+        oa_color_upw %in% c("bronze","gold","green") ~ "UPW",
+        TRUE ~ "NONE")
+    )
+  return(df)
+}
+
+
 
 
 # The following functions try to classify all publications according to their presence in check lists. In sequence:
@@ -144,26 +182,6 @@ upw_pipeline <- function(df){
 # NB in the classification pipeline these labels will be applied in sequence
 # Thus, e.g. if ISSN matches DOAJ but Unpaywall says 'green', the label will still be Gold OA.
 
-define_oa <- function(doaj,vsnu,upw=NA){
-  # DOAJ and VSNU: 
-  if(doaj){ # DOAJ means gold
-    return("GOLD")
-  }
-  if(vsnu){ # VSNU deal list means hybrid
-    return("HYBRID")
-  }
-  # UNPAYWALL: resolve to hybrid or green, build in error for different inputs
-  if(!is.na(upw)){
-    if(upw=="bronze"|upw=="gold"){ # indeed, we choose to label gold only confirmed DOAJ ISSN
-      return("HYBRID")
-    } else if(upw=="green"){
-      return("GREEN")
-    } else{ #we only get to this point if there are other labels in unpaywall than bronze/gold/green
-      return("UNDERTERMINED - CHECK define_oa FUNCTION")
-    }
-  }
-  return("CLOSED")
-}
 
 define_oa_detailed <- function(doaj,vsnu,upw=NA){
   ## DOAJ and VSNU: DOAJ means gold, VSNU deal list means hybrid
