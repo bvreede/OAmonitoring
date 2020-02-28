@@ -65,19 +65,15 @@ rm(alldata)
 # STEP TWO: APPLY CLASSIFICATION
 
 source("R/classification.R")
-# get VSNU data
+# get data from VSNU, DOAJ, UPW
 vsnu_doi_cleaned <- get_vsnu(path_vsnu)
-
-# get DOAJ data
 doajdf <- doaj_pipeline(df)
-
-# get UPW data
 upwdf <- upw_pipeline(df)
 
 # perform the classification
 df <- classify_oa(df)
 
-
+# 
 
 
 
@@ -93,29 +89,6 @@ pure_manual <- mutate(pure_manual,manual=substring(handmatig,1,1)) %>%
 
 
 
-#### OA LABELLING ####
-## Collect information that can later be used for the classification pipeline.
-
-## Step 1: DOAJ ISSN matching
-doaj_issn <- union(doaj$issn[!is.na(doaj$issn)], # all DOAJ ISSN numbers from print, without NAs
-                   doaj$eissn[!is.na(doaj$eissn)]) # all DOAJ E-ISSN numbers, without NAs
-
-pure_uu$DOAJ_ISSN_match <- pure_uu$issn%in%doaj_issn
-pure_umcu$DOAJ_ISSN_match <- pure_umcu$issn%in%doaj_issn
-
-## Step 2: VSNU DOI matching
-vsnu_doi <- vsnu$DOI[!is.na(vsnu$DOI)]
-
-pure_uu$VSNU_doi_match <- pure_uu$doi%in%vsnu_doi
-pure_umcu$VSNU_doi_match <- pure_umcu$doi%in%vsnu_doi
-
-## Step 3: PURE classification
-pure_uu <- mutate(pure_uu,
-                  pure_green = str_detect(electronic_version,"Accepted author manuscript")|
-                    !is.na(embargo_date))
-pure_umcu <- mutate(pure_umcu,
-                  pure_green = str_detect(electronic_version,"Accepted author manuscript")|
-                    !is.na(embargo_date))
 
 
 ## Step 4: Unpaywall
@@ -129,23 +102,6 @@ alldois <- union(pure_uu$doi[!is.na(pure_uu$doi)], # all pure_uu dois without NA
 # mine unpaywall API for each DOI
 outlist <- list()
 
-for(i in seq_along(alldois)){
-  doi <- alldois[i]
-  if(api_csv=="api"){ # only mine the api if the user wants to renew unpaywall data
-    res <- upw_api(doi)
-    outlist[[i]] <- res
-  }
-}
-
-if(api_csv=="api"){
-  unpaywall <- bind_rows(outlist)
-  # save unpaywall data
-  today <- as.character(Sys.Date())
-  upwname <- paste0("data/unpaywall_",today,".csv")
-  write_csv(unpaywall,upwname)
-} else if(api_csv=="csv"){
-  unpaywall <- read_csv(path_unpaywall)
-}
 
 # ensure unpaywall data is saved as factor
 unpaywall$evidence %<>% as.factor
