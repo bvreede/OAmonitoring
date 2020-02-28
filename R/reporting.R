@@ -86,14 +86,25 @@ deduplicate <- function(df){
 
 
 infocheck <- function(df,checkthese){
-  # checks of the percentage of missing information in a df does not exceed 5%
-  info <- df$information
-  f_mis <- sum(info==F)/length(info)
-  if(f_mis>0.05){
-    checkthese <- rbind(checkthese,filter(df,information==F))
+  f_mis <- sum(df$OA_label_explainer == "NONE")/length(df$OA_label_explainer)
+  if(f_mis>cutoff_missing){
+    checkthese <- rbind(checkthese,filter(df,OA_label_explainer == "NONE"))
   }
   return(checkthese)
 }
+
+checkthese <- NULL
+checkthese <- infocheck(df,checkthese)
+
+#infocheck <- function(df,checkthese){
+  # checks of the percentage of missing information in a df does not exceed 5%
+#  info <- df$OA_label_explainer
+#  f_mis <- sum(info==F)/length(info)
+#  if(f_mis>0.05){
+#    checkthese <- rbind(checkthese,filter(df,information==F))
+#  }
+#  return(checkthese)
+#}
 
 
 
