@@ -8,6 +8,11 @@ library(magrittr)
 library(here)
 library(lubridate)
 
+library(dplyr)
+library(docstring)
+library(testthat)
+
+
 # source scripts with functions and paths
 source("config/config.R")
 source("R/clean_data.R")

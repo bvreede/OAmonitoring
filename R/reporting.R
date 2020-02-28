@@ -4,35 +4,6 @@
 #### Input required from the user: a config
 #### file with the organisation units that need
 #### to be reported on.
-####
-#### Written by: Barbara Vreede
-#### Contact: b.vreede@gmail.com
-
-
-## load libraries
-library(readr)
-library(readxl)
-library(stringr)
-library(dplyr)
-library(jsonlite)
-library(httr)
-library(magrittr)
-library(ggplot2)
-library(docstring)
-library(testthat)
-
-
-## read data
-# read all csv files in the output folder
-infiles = list.files(path = "./output", pattern="*_clean.csv")
-infiles = paste0("output/",infiles)
-myfiles = lapply(infiles, read_csv)
-# add source filename to myfiles
-for(i in 1:length(infiles)){
-  myfiles[[i]] <- myfiles[[i]] %>% mutate(source = infiles[i])
-}
-# bind all together to one large dataframe
-df <- bind_rows(myfiles)
 
 
 report <- function(nrecords_post,nrecords,method){
@@ -99,6 +70,8 @@ deduplicate <- function(df){
     df <- deduplicate_method(df,method="internal")
   }
   else{
+    # ensure there are only atomic columns in the dataset
+    df <- df %>% select_if(is.atomic)
     # separate between entries with and without doi
     df_nondoi <- df %>% filter(is.na(doi))
     df_doi <- df %>% filter(!is.na(doi))
@@ -135,17 +108,35 @@ checkthese <- infocheck(df,checkthese)
 
 
 
-reporting <- read_file("./config/rapportage_faculteit.txt") %>% str_split("\n")
-reporting <- reporting[[1]]
+full_report <- function(df){
+  ## Write a general report for the entire dataset
+  df_report <- df %>% 
+    group_by(org_unit, OA_label) %>% 
+    summarise(n_papers = n())
+  # deduplicate the dataset and score irrespective of org_unit
+  df_all <- df %>% 
+    deduplicate() %>% 
+    group_by(OA_label) %>% 
+    summarise(n_papers = n()) %>% 
+    mutate(org_unit = "all")
+  # add the all column to the report
+  df_report <- bind_rows(df_report,df_all)
+  # transform the data
+  df_report <- df_report %>% pivot_wider(names_from=OA_label,values_from=n_papers)
+  return(df_report)
+}
 
-#count_data_results <- data.frame()
 
-for(r in reporting){
-  units = str_split(r, ", ")[[1]]
-  df_r <- df %>% filter(org_unit%in%units) %>% deduplicate()
-  #dplyr::count(df_r, OA_label) %>% print()
-  countdata <- data.frame (dplyr::count(df_r, OA_label))
-#  count_data_results <- rbind(countdata)
+reporting <- read_excel("./config/reports.xlsx")
+reporting <- reporting[2:ncol(reporting)]
+
+for(r in seq_along(reporting)){
+  name <- colnames(reporting)[r]
+  col <- pull(reporting, name)
+  units <- col[!is.na(col)]
+  df_r <- df %>% filter(org_unit%in%units)
+  full_report(df_r) %>% print()
+
   outfilename <-paste("./output/",r,"countdata.csv")
   write_csv(countdata,outfilename)
 }
