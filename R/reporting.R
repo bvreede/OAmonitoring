@@ -127,6 +127,8 @@ full_report <- function(df){
 }
 
 
+
+
 reporting <- read_excel("./config/reports.xlsx")
 reporting <- reporting[2:ncol(reporting)]
 
@@ -135,14 +137,16 @@ for(r in seq_along(reporting)){
   col <- pull(reporting, name)
   units <- col[!is.na(col)]
   df_r <- df %>% filter(org_unit%in%units)
-  full_report(df_r) %>% print()
-
-  outfilename <-paste("./output/",r,"countdata.csv")
-  write_csv(countdata,outfilename)
+  name_slug <- str_replace(name," ","_")
+  outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
+  full_report(df_r) %>% write_csv(outfilename)
 }
 
+oacols <- c("gray88","gold1","chartreuse3","orange3")
 
+p <- ggplot(df_r, aes(x = org_unit, fill=OA_label))
 
+p + geom_bar(stat="prop")
 
 
 #### BELOW TAKEN FROM PIPELINE ####
@@ -157,31 +161,9 @@ for(r in seq_along(reporting)){
 
 
 
-# initialize a df with publications-to-check
-checkthese <- NULL
-# initialize lists to collect results
-allresults <- list()
 
 
 
-
-
-### ALL PUBLICATIONS ###
-all_pubs_report <- deduplicate(all_pubs)
-checkthese <- infocheck(all_pubs_report,checkthese)
-allresults[["All publications"]] <- c(table(all_pubs_report$OA_label),table(all_pubs_report$OA_label_detail))
-
-
-### PER FACULTY ####
-all_faculties <- levels(all_pubs$org_unit)
-all_faculties <- all_faculties[c(str_which(all_faculties, "Faculteit"),str_which(all_faculties,"UMC Utrecht"))]
-
-for(f in all_faculties){
-  subset <- filter(all_pubs, org_unit==f)
-  subset_report <- deduplicate(subset)
-  checkthese <- infocheck(subset,checkthese)
-  allresults[[f]] <- c(table(subset_report$OA_label),table(subset_report$OA_label_detail))
-}
 
 ### PER HOOP-AREA ###
 HOOP <- read_excel("data/HOOPgebieden-test.xlsx")
