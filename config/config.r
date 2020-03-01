@@ -6,6 +6,9 @@ email_address <- "b.m.i.vreede@uu.nl"
 # Fill in cutoff for checking missing info
 cutoff_missing <- 0.05
 
+# What year is the report for?
+report_year <- 2019
+
 
 # CORE
 core_key <- "jHVeD2i6BotaTFvdgun3qbXUAM0z4Owy"
