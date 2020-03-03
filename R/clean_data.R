@@ -24,7 +24,6 @@ read_ext <- function(fn, dir="data/"){
   return(df)
 }
 
-
 column_rename <- function(data,col_config){
   # rename column names
   id_column <- col_config[allfiles$File_info=="Internal unique identifier"]
@@ -38,8 +37,6 @@ column_rename <- function(data,col_config){
   # return cleaned data
   return(data)
 }
-
-
 
 number_to_issn <- function(number){
   # ensure ISSN has two elements, with a hyphen in between
@@ -64,8 +61,7 @@ clean_issn <- function(column){
 }
 
 clean_doi <- function(column){
-  column <- str_replace(column,'https://','') #remove https:// from DOI
-  column <- str_replace(column,'doi.org/','') #remove doi.org/ from DOI
+  column <- str_extract(column,"10\\..+") #ensure only dois are kept, without url information
   column <- str_replace(column,'\\s+','') #remove spaces from DOI
   column <- tolower(column) #Change DOI to lowercase only
   column <- str_replace(column,",.+","") #remove duplicate DOIs separated with a comma
@@ -79,7 +75,7 @@ open_clean <- function(fn){
   # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
   # also add source file column
   df <- df %>% mutate(issn = clean_issn(issn),
-                      doi = clean_doi(doi),
+                      doi_clean = clean_doi(doi),
                       source = fn)
   
   return(df)
