@@ -5,7 +5,6 @@ library(readxl)
 library(jsonlite)
 library(httr)
 library(magrittr)
-library(here)
 library(lubridate)
 
 library(dplyr)
@@ -53,9 +52,8 @@ for(col in allfiles){
 }
 
 # remove excess variables, bind to dataframe
-rm(df, fn, fn_ext, col)
 df <- bind_rows(alldata)
-rm(alldata)
+rm(allfiles,alldata,fn, fn_ext, col)
 
 
 # STEP TWO: APPLY CLASSIFICATION
