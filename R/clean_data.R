@@ -39,15 +39,7 @@ column_rename <- function(data,col_config){
   return(data)
 }
 
-# cleaning DOIs and ISSN columns
-clean_issn <- function(column){
-  column <- str_replace(column,'\\s+','') #remove spaces from ISSN
-  # ensure ISSN has two elements, with a hyphen in between
-  if(column[5]!='-'){
-    column <- paste0(column[1:4],"-",column[5:8])
-  }
-  return(column)
-}
+
 
 number_to_issn <- function(number){
   # ensure ISSN has two elements, with a hyphen in between
