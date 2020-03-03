@@ -123,6 +123,14 @@ full_report <- function(df){
   df_report <- bind_rows(df_report,df_all)
   # transform the data
   df_report <- df_report %>% pivot_wider(names_from=OA_label,values_from=n_papers)
+  # add percentages
+  df_report <- df_report %>% mutate(
+    Total_papers = sum(CLOSED,GOLD,GREEN,HYBRID),
+    gold_percent = round(GOLD/Total_papers*100,1),
+    hybrid_percent = round(HYBRID/Total_papers*100,1),
+    green_percent = round(GREEN/Total_papers*100,1),
+    total_OA_percent = round((1 - CLOSED/Total_papers)*100,1)
+  )
   return(df_report)
 }
 
