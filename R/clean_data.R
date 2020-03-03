@@ -75,7 +75,7 @@ open_clean <- function(fn){
   # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
   # also add source file column
   df <- df %>% mutate(issn = clean_issn(issn),
-                      doi_clean = clean_doi(doi),
+                      doi = clean_doi(doi),
                       source = fn)
   
   return(df)
