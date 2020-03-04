@@ -14,11 +14,6 @@ get_vsnu <- function(path){
   return(vsnu_doi_cleaned)
 }
 
-# match with the VSNU document
-vsnu_match <- function(doi,vsnu_doi=vsnu_doi_cleaned){
-  return(doi%in%vsnu_doi)
-}
-
 extract_uniques <- function(column){
   #' Uses unique and NA removal to retrieve
   #' a vector of unique entries in a column.
@@ -75,7 +70,8 @@ api_to_df <- function(df, which_info){
     
   }
   collect <- list()
-  cat(paste("Mining the", which_info, "api..."))
+  #TODO add time to cat statement
+  cat(paste("Mining the", which_info, "api...\n"))
   for(i in seq_along(all_entries)){
     entry <- all_entries[i]
     if(which_info == "doaj"){
@@ -118,34 +114,75 @@ save_df <- function(df, which_info){
 }
 
 doaj_pipeline <- function(df){
+  if(use_doaj=="api"){
   df <- df %>% 
     api_to_df("doaj") %>%
     process_doaj()
   save_df(df, "doaj")
+  } else if(use_doaj=="saved"){
+    df <- read_csv(path_doaj)    
+  } else{
+    warning("Not sure what DOAJ data to use.
+Please indicate this in the config.R file, using the option 'api' for use of the DOAJ API,
+or 'saved' to use saved data that was previously mined from the DOAJ API.")
+    stop
+  }
   return(df)
 }
 
 upw_pipeline <- function(df){
+  if(use_upw=="api"){
   df <- df %>% 
     api_to_df("upw")
   save_df(df, "upw")
+  } else if(use_upw=="saved"){
+    df <- read_csv(path_upw)
+  } else{
+    warning("Not sure what Unpaywall data to use.
+Please indicate this in the config.R file, using the option 'api' for use of the Unpaywall API,
+or 'saved' to use saved data that was previously mined from the Unpaywall API.")
+    stop
+  }
   return(df)
 }
 
-# match issns with their existence in DOAJ
-doaj_match <- function(issn, doajissn = doajdf$issn){
-  return(issn%in%doajissn)
+
+
+apply_upw <- function(df){
+  # extract the relevant column from the unpaywall df
+  # and place it in the main df.
+  if("oa_color"%in%colnames(df)){
+    # it is possible that oa_color already exists. This is the crucial column from Unpaywall,
+    # so we ensure here that the column is not duplicated (prompting suffix naming, causing confusion)
+    # by removing it from the df.
+    df <- select(df, -oa_color)
+  }
+  df_with_upw <- left_join(df, upwdf, by="doi")
+  df <- df %>% 
+    mutate(upw = df_with_upw$oa_color)
+  return(df)
+}
+
+apply_vsnu <- function(df){
+  # match with the VSNU document
+  df <- df %>% 
+    mutate(vsnu = doi%in%vsnu_doi_cleaned)
+  return(df)
+}
+
+apply_doaj <- function(df){
+  # match issns with their existence in DOAJ
+  df <- df %>% mutate(
+    doaj = issn%in%doajdf$issn)
+  return(df)
 }
 
 # add matches info to the dataframe
 apply_matches <- function(df){
-  df <- df %>% 
-    mutate(vsnu = vsnu_match(doi),
-           doaj = doaj_match(issn)) %>%
-    # it is possible that oa_color already exists. This is the crucial column from Unpaywall,
-    # so we ensure here that the upw column gets labeled with _upw
-    left_join(upwdf, by="doi", suffix = c("","_upw")) %>% 
-    rename(oa_color_upw = oa_color) 
+  df <- df %>%
+    apply_doaj() %>%
+    apply_vsnu() %>%
+    apply_upw()
   return(df)
 }
 
@@ -167,20 +204,20 @@ classify_oa <- function(df){
       OA_label = case_when(
         doaj ~ "GOLD",
         vsnu ~ "HYBRID",
-        oa_color_upw == "bronze" ~ "CLOSED",
-        oa_color_upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
-        oa_color_upw == "hybrid" ~ "HYBRID",
-        oa_color_upw == "green" ~ "GREEN",
-        oa_color_upw == "closed" ~ "CLOSED",
+        upw == "bronze" ~ "CLOSED",
+        upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
+        upw == "hybrid" ~ "HYBRID",
+        upw == "green" ~ "GREEN",
+        upw == "closed" ~ "CLOSED",
         TRUE ~ "CLOSED"),
       OA_label_explainer = case_when(
         doaj ~ "DOAJ",
         vsnu ~ "VSNU",
-        oa_color_upw == "bronze" ~ "UPW (bronze)",
-        oa_color_upw == "gold" ~ "UPW (gold)", 
-        oa_color_upw == "hybrid" ~ "UPW (hybrid)",
-        oa_color_upw == "green" ~ "UPW (green)",
-        oa_color_upw == "closed" ~ "UPW (closed)",
+        upw == "bronze" ~ "UPW (bronze)",
+        upw == "gold" ~ "UPW (gold)", 
+        upw == "hybrid" ~ "UPW (hybrid)",
+        upw == "green" ~ "UPW (green)",
+        upw == "closed" ~ "UPW (closed)",
         TRUE ~ "NONE")
     )
   save_df(df, "all")
