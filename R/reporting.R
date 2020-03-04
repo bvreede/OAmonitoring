@@ -125,7 +125,7 @@ full_report <- function(df){
   df_report <- df_report %>% pivot_wider(names_from=OA_label,values_from=n_papers)
   # add percentages
   df_report <- df_report %>% mutate(
-    Total_papers = sum(CLOSED,GOLD,GREEN,HYBRID),
+    Total_papers = sum(CLOSED,GOLD,GREEN,HYBRID, na.rm=T),
     gold_percent = round(GOLD/Total_papers*100,1),
     hybrid_percent = round(HYBRID/Total_papers*100,1),
     green_percent = round(GREEN/Total_papers*100,1),
@@ -149,6 +149,9 @@ for(r in seq_along(reporting)){
   outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
   full_report(df_r) %>% write_csv(outfilename)
 }
+
+full_report(df)
+
 
 oacols <- c("gray88","gold1","chartreuse3","orange3")
 
