@@ -10,8 +10,14 @@
 get_vsnu <- function(path){
   # get all VSNU DOIs
   vsnu <- read_ext(path, "")
-  vsnu_doi_cleaned <- clean_doi(vsnu$DOI)
-  return(vsnu_doi_cleaned)
+  vsnu <- vsnu %>% mutate(doi = clean_doi(DOI))
+  return(vsnu)
+}
+
+get_vsnu_df <- function(path){
+  # get all VSNU DOIs
+  vsnu <- read_ext(path, "")
+  return(vsnu)
 }
 
 extract_uniques <- function(column){
@@ -41,6 +47,7 @@ doaj_api <- function(issn){
 
 upw_api <- function(doi,email = email_address){
   #' collecting DOI results from Unpaywall using their REST API
+  print(doi)
   # compile query to send to unpaywall
   api <- "http://api.unpaywall.org/"
   email <- paste("?email=",email,sep="") 
@@ -165,15 +172,25 @@ apply_upw <- function(df){
 
 apply_vsnu <- function(df){
   # match with the VSNU document
-  df <- df %>% 
-    mutate(vsnu = doi%in%vsnu_doi_cleaned)
+  vsnu_doi_strip <- vsnudf$doi[!is.na(vsnudf$doi)]
+  df <- df %>% mutate(
+    vsnu = doi%in%vsnu_doi_strip)
   return(df)
 }
 
 apply_doaj <- function(df){
   # match issns with their existence in DOAJ
+  doaj_issn_strip <- doajdf$issn[!is.na(doajdf$issn)]
   df <- df %>% mutate(
-    doaj = issn%in%doajdf$issn)
+    doaj = issn%in%doaj_issn_strip)
+  return(df)
+}
+
+apply_taverne <- function(df){
+  # determine whether a paper was made accessible with Taverne
+  taverneIDs <- taverne$system_id[!is.na(taverne$system_id)]
+  df <- df %>% mutate(
+    taverne = system_id%in%taverneIDs)
   return(df)
 }
 
