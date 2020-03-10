@@ -199,7 +199,8 @@ apply_matches <- function(df){
   df <- df %>%
     apply_doaj() %>%
     apply_vsnu() %>%
-    apply_upw()
+    apply_upw() %>%
+    apply_taverne()
   return(df)
 }
 
@@ -221,6 +222,7 @@ classify_oa <- function(df){
       OA_label = case_when(
         doaj ~ "GOLD",
         vsnu ~ "HYBRID",
+        taverne ~ "GREEN",
         upw == "bronze" ~ "CLOSED",
         upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
         upw == "hybrid" ~ "HYBRID",
@@ -230,6 +232,7 @@ classify_oa <- function(df){
       OA_label_explainer = case_when(
         doaj ~ "DOAJ",
         vsnu ~ "VSNU",
+        taverne ~ "TAVERNE",
         upw == "bronze" ~ "UPW (bronze)",
         upw == "gold" ~ "UPW (gold)", 
         upw == "hybrid" ~ "UPW (hybrid)",
