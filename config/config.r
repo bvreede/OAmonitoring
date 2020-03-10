@@ -3,6 +3,7 @@
 #path_vsnu <- "data/VSNU_2019_only.xlsx"
 path_vsnu <- "data/VSNU-cummulatief_WOA20200302.xlsx"
 path_taverne <- "data/taverne.csv"
+path_custom <- "data/custom_labels.xlsx"
 
 #Fill in a valid email for use in the Unpaywall API
 email_address <- "b.m.i.vreede@uu.nl" 

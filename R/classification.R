@@ -6,6 +6,11 @@
 # 
 # 
 
+remove_na <- function(column){
+  column <- column[!is.na(column)]
+  return(column)
+}
+
 ### VSNU DEAL
 get_vsnu <- function(path){
   # get all VSNU DOIs
@@ -14,19 +19,30 @@ get_vsnu <- function(path){
   return(vsnu)
 }
 
-get_vsnu_df <- function(path){
-  # get all VSNU DOIs
-  vsnu <- read_ext(path, "")
-  return(vsnu)
+### CUSTOM LABELS
+get_custom <- function(path){
+  # get the dataframe with custom IDS
+  custom <- read_ext(path, "")
+  cris_green <- custom %>% 
+    pull(Green) %>% 
+    remove_na()
+  cris_hybrid <- custom %>% 
+    pull(Hybrid) %>% 
+    remove_na()
+  taverne <- custom %>% 
+    pull(Taverne) %>% 
+    remove_na()
+  custom_list <- list("taverne"=taverne,"cris_green"=cris_green,"cris_hybrid"=cris_hybrid)
+  return(custom_list)
 }
+
 
 extract_uniques <- function(column){
   #' Uses unique and NA removal to retrieve
   #' a vector of unique entries in a column.
   #' This is useful when mining an API, trying
   #' to minimize the number of calls.
-  all_entries <- column %>% unique()
-  all_entries <- all_entries[!is.na(all_entries)]
+  all_entries <- column %>% unique() %>% remove_na()
   return(all_entries)
 }
 
@@ -172,7 +188,7 @@ apply_upw <- function(df){
 
 apply_vsnu <- function(df){
   # match with the VSNU document
-  vsnu_doi_strip <- vsnudf$doi[!is.na(vsnudf$doi)]
+  vsnu_doi_strip <- remove_na(vsnudf$doi)
   df <- df %>% mutate(
     vsnu = doi%in%vsnu_doi_strip)
   return(df)
@@ -180,7 +196,7 @@ apply_vsnu <- function(df){
 
 apply_doaj <- function(df){
   # match issns with their existence in DOAJ
-  doaj_issn_strip <- doajdf$issn[!is.na(doajdf$issn)]
+  doaj_issn_strip <- remove_na(doajdf$issn)
   df <- df %>% mutate(
     doaj = issn%in%doaj_issn_strip)
   return(df)
@@ -188,11 +204,21 @@ apply_doaj <- function(df){
 
 apply_taverne <- function(df){
   # determine whether a paper was made accessible with Taverne
-  taverneIDs <- taverne$system_id[!is.na(taverne$system_id)]
+  taverneIDs <- remove_na(taverne$system_id)
   df <- df %>% mutate(
     taverne = system_id%in%taverneIDs)
   return(df)
 }
+
+apply_cris_green <- function(df){
+  # does a paper appear in the manually added CRIS list?
+  greenIDs <- 
+  df <- df %>% mutate(
+    cris_green = system_id%in%greenIDs)
+  return(df)
+}
+
+
 
 # add matches info to the dataframe
 apply_matches <- function(df){
