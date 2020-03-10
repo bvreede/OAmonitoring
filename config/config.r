@@ -1,6 +1,8 @@
 # VSNU
 #path_vsnu <- "data/mockdata_VSNUdeal.xlsx"
-path_vsnu <- "data/VSNU_2019_only.xlsx"
+#path_vsnu <- "data/VSNU_2019_only.xlsx"
+path_vsnu <- "data/VSNU-cummulatief_WOA20200302.xlsx"
+path_taverne <- "data/taverne.csv"
 
 #Fill in a valid email for use in the Unpaywall API
 email_address <- "b.m.i.vreede@uu.nl" 
@@ -17,5 +19,5 @@ report_year <- 2019
 use_doaj <- "saved" # "saved" or "api"
 use_upw <- "saved" # "saved" or "api"
 
-path_doaj <- "data/clean/doaj_from_issn_2020-03-03.csv"
-path_upw <- "data/clean/upw_from_doi_2020-03-03.csv"
+path_doaj <- "data/clean/doaj_from_issn_2020-03-09.csv"
+path_upw <- "data/clean/upw_from_doi_2020-03-09.csv"
