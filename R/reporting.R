@@ -86,25 +86,17 @@ deduplicate <- function(df){
 
 
 infocheck <- function(df,checkthese){
-  f_mis <- sum(df$OA_label_explainer == "NONE")/length(df$OA_label_explainer)
+  df <- deduplicate(df)
+  df <- df %>% mutate(info_missing = (OA_label_explainer=="NONE" & is.na(doi)))
+  f_mis <- sum(df$info_missing)/nrow(df)
   if(f_mis>cutoff_missing){
     checkthese <- rbind(checkthese,filter(df,OA_label_explainer == "NONE"))
   }
   return(checkthese)
 }
 
-checkthese <- NULL
-checkthese <- infocheck(df,checkthese)
 
-#infocheck <- function(df,checkthese){
-  # checks of the percentage of missing information in a df does not exceed 5%
-#  info <- df$OA_label_explainer
-#  f_mis <- sum(info==F)/length(info)
-#  if(f_mis>0.05){
-#    checkthese <- rbind(checkthese,filter(df,information==F))
-#  }
-#  return(checkthese)
-#}
+
 
 
 
@@ -150,14 +142,7 @@ for(r in seq_along(reporting)){
   full_report(df_r) %>% write_csv(outfilename)
 }
 
-full_report(df)
 
-
-oacols <- c("gray88","gold1","chartreuse3","orange3")
-
-p <- ggplot(df_r, aes(x = org_unit, fill=OA_label))
-
-p + geom_bar(stat="prop")
 
 
 #### BELOW TAKEN FROM PIPELINE ####
