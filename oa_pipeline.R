@@ -65,7 +65,6 @@ system_id_check(df)
 source("R/classification.R")
 # get data from VSNU, DOAJ, UPW
 vsnudf <- get_vsnu(path_vsnu)
-taverne <- read_csv(path_taverne)
 doajdf <- doaj_pipeline(df)
 upwdf <- upw_pipeline(df)
 
@@ -75,7 +74,7 @@ df <- classify_oa(df)
 
 
 # STEP THREE: REPORT
-
+source("R/reporting.R")
 
 
 checkthese <- NULL
