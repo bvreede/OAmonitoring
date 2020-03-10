@@ -202,22 +202,14 @@ apply_doaj <- function(df){
   return(df)
 }
 
-apply_taverne <- function(df){
-  # determine whether a paper was made accessible with Taverne
-  taverneIDs <- remove_na(taverne$system_id)
+apply_custom <- function(df){
+  custom_list <- get_custom(path_custom)
   df <- df %>% mutate(
-    taverne = system_id%in%taverneIDs)
+    taverne = system_id%in%custom_list$taverne,
+    cris_green = system_id%in%custom_list$cris_green,
+    cris_hybrid = system_id%in%custom_list$cris_hybrid)
   return(df)
 }
-
-apply_cris_green <- function(df){
-  # does a paper appear in the manually added CRIS list?
-  greenIDs <- 
-  df <- df %>% mutate(
-    cris_green = system_id%in%greenIDs)
-  return(df)
-}
-
 
 
 # add matches info to the dataframe
@@ -226,7 +218,7 @@ apply_matches <- function(df){
     apply_doaj() %>%
     apply_vsnu() %>%
     apply_upw() %>%
-    apply_taverne()
+    apply_custom()
   return(df)
 }
 
@@ -253,6 +245,8 @@ classify_oa <- function(df){
         upw == "hybrid" ~ "HYBRID",
         taverne ~ "GREEN",
         upw == "green" ~ "GREEN",
+        cris_hybrid ~ "HYBRID",
+        cris_green ~ "GREEN",
         upw == "closed" ~ "CLOSED",
         TRUE ~ "CLOSED"),
       OA_label_explainer = case_when(
@@ -263,6 +257,8 @@ classify_oa <- function(df){
         upw == "hybrid" ~ "UPW (hybrid)",
         taverne ~ "TAVERNE",
         upw == "green" ~ "UPW (green)",
+        cris_hybrid ~ "CUSTOM",
+        cris_green ~ "CUSTOM",
         upw == "closed" ~ "UPW (closed)",
         TRUE ~ "NONE")
     )
