@@ -60,6 +60,7 @@ clean_issn <- function(column){
   return(column)
 }
 
+
 clean_doi <- function(column){
   column <- str_extract(column,"10\\..+") #ensure only dois are kept, without url information
   column <- str_replace(column,'\\s+','') #remove spaces from DOI
@@ -79,4 +80,30 @@ open_clean <- function(fn){
                       source = fn)
   
   return(df)
+}
+
+
+system_id_check <- function(df){
+  #' Checks that there are no duplicate system IDs between
+  #' multiple source files, as this may be accidental and cause problems
+  #' with deduplication and other assignments later on.
+  sources <- df$source %>% 
+    as.factor() %>% 
+    levels()
+  all_ids <- c()
+  duplicates <- c()
+  for(s in sources){
+    ids <- df %>% 
+      filter(source == s) %>% 
+      pull(system_id)
+    duplicates <- c(duplicates,ids[ids%in%all_ids])
+    all_ids <- c(all_ids,ids)
+  }
+  if(length(duplicates) > 0){
+    df %>% filter(system_id%in%duplicates) %>%
+      write_csv("output/confirm_duplicate_IDs.csv")
+    warning("Duplicate IDs exist between different imported datasets.
+  Please ensure that these refer to the same files.
+  For your convenience, all lines corresponding to duplicate IDs are saved in output/confirm_duplicate_IDs.csv")
+  }
 }

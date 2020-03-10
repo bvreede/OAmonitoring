@@ -55,6 +55,8 @@ for(col in allfiles){
 df <- bind_rows(alldata)
 rm(allfiles,alldata,fn, fn_ext, col)
 
+# check the system IDs for duplicates
+system_id_check(df)
 
 
 # STEP TWO: APPLY CLASSIFICATION
