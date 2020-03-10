@@ -56,12 +56,14 @@ df <- bind_rows(alldata)
 rm(allfiles,alldata,fn, fn_ext, col)
 
 
+
 # STEP TWO: APPLY CLASSIFICATION
 # NB: all data collected here is automatically saved in data/clean
 
 source("R/classification.R")
 # get data from VSNU, DOAJ, UPW
-vsnu_doi_cleaned <- get_vsnu(path_vsnu)
+vsnudf <- get_vsnu(path_vsnu)
+taverne <- read_csv(path_taverne)
 doajdf <- doaj_pipeline(df)
 upwdf <- upw_pipeline(df)
 
@@ -74,7 +76,25 @@ df <- classify_oa(df)
 
 
 
+checkthese <- NULL
+checkthese <- infocheck(df,checkthese)
 
+for(cat in levels(as.factor(df$org_unit))){
+  df_temp <- df %>% filter(org_unit==cat)
+  checkthese <- infocheck(df_temp,checkthese)
+}
+
+checkthese %>% deduplicate() %>% write_csv("output/checkthese.csv")
+
+
+full_report(df) %>% write_csv("output/full_report.csv")
+
+
+oacols <- c("gray88","gold1","chartreuse3","orange3")
+
+p <- ggplot(df_r, aes(x = org_unit, fill=OA_label))
+
+p + geom_bar(stat="prop")
 
 
 
