@@ -87,10 +87,9 @@ deduplicate <- function(df){
 
 infocheck <- function(df,checkthese){
   df <- deduplicate(df)
-  df <- df %>% mutate(info_missing = (OA_label_explainer=="NONE" & is.na(doi)))
-  f_mis <- sum(df$info_missing)/nrow(df)
+  f_mis <- sum(df$OA_label_explainer=="NONE")/nrow(df)
   if(f_mis>cutoff_missing){
-    checkthese <- rbind(checkthese,filter(df,info_missing))
+    checkthese <- rbind(checkthese,filter(df,OA_label_explainer=="NONE"))
   }
   return(checkthese)
 }
@@ -129,81 +128,17 @@ full_report <- function(df){
 
 
 
-reporting <- read_excel("./config/reports.xlsx")
-reporting <- reporting[2:ncol(reporting)]
+#reporting <- read_excel("./config/reports.xlsx")
+#reporting <- reporting[2:ncol(reporting)]
 
-for(r in seq_along(reporting)){
-  name <- colnames(reporting)[r]
-  col <- pull(reporting, name)
-  units <- col[!is.na(col)]
-  df_r <- df %>% filter(org_unit%in%units)
-  name_slug <- str_replace(name," ","_")
-  outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
-  full_report(df_r) %>% write_csv(outfilename)
-}
-
-
-
-
-#### BELOW TAKEN FROM PIPELINE ####
-
-### Reporting:
-# make subselection
-# perform deduplication
-# report fraction of absent information
-## if above 5% of total: give a warning, and put the entries in a df for manual check
-# report OA:
-## total number of publications in four categories
-
-
-
-
-
-
-
-### PER HOOP-AREA ###
-HOOP <- read_excel("data/HOOPgebieden-test.xlsx")
-colnames(HOOP)[colnames(HOOP) == 'Contributors > Organisations > Organisational unit-0'] <- "org_unit"
-
-hoop_areas <- levels(as.factor(HOOP$HOOP))
-hoop_areas <- hoop_areas[hoop_areas!="n.v.t."]
-
-for(h in hoop_areas){
-  # which departments are included?
-  depts <- filter(HOOP, HOOP==h) %>% pull(org_unit)
-  subset <- filter(all_pubs, org_unit%in%depts)
-  subset_report <- deduplicate(subset)
-  # save records for manual checks in case incomplete information exceeds 5%
-  checkthese <- infocheck(subset,checkthese)
-  allresults[[h]] <- c(table(subset_report$OA_label),table(subset_report$OA_label_detail))
-}
-
-allresults <- bind_rows(!!!allresults, .id="id")
-checkthese <- deduplicate(checkthese)
-
-lbls <- c("CLOSED","GOLD","GREEN","HYBRID")
-neworder <- c(1,3,4,2)
-piecols <- c("gray88","gold1","chartreuse3","orange3")
-piecols <- piecols[neworder]
-
-## MAKE PIECHARTS ## 
-for(n in 1:nrow(allresults)){
-  title <- allresults[n,"id"]
-  slices <- unlist(allresults[n,lbls],use.names=F)
-  ns <- paste0("n=",slices)
-  labs <- paste(lbls,ns)
-  # reorder
-  ns <- ns[neworder]
-  labs <- labs[neworder]
-  slices <- slices[neworder]
-  # name
-  ttl <- str_replace(title," ","_")
-  ttl <- str_replace(ttl,"&","en")
-  fn <- paste0("img/",ttl,".png")
-  png(filename=fn,width=750,height=750,res=130)
-  pie(slices,labels=ns,main=title,init.angle=90,col=piecols,border=0)
-  dev.off()
-}
-
+#for(r in seq_along(reporting)){
+#  name <- colnames(reporting)[r]
+#  col <- pull(reporting, name)
+#  units <- col[!is.na(col)]
+#  df_r <- df %>% filter(org_unit%in%units)
+#  name_slug <- str_replace(name," ","_")
+#  outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
+#  full_report(df_r) %>% write_csv(outfilename)
+#}
 
 
