@@ -90,7 +90,7 @@ infocheck <- function(df,checkthese){
   df <- df %>% mutate(info_missing = (OA_label_explainer=="NONE" & is.na(doi)))
   f_mis <- sum(df$info_missing)/nrow(df)
   if(f_mis>cutoff_missing){
-    checkthese <- rbind(checkthese,filter(df,OA_label_explainer == "NONE"))
+    checkthese <- rbind(checkthese,filter(df,info_missing))
   }
   return(checkthese)
 }
