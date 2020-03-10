@@ -222,20 +222,20 @@ classify_oa <- function(df){
       OA_label = case_when(
         doaj ~ "GOLD",
         vsnu ~ "HYBRID",
-        taverne ~ "GREEN",
         upw == "bronze" ~ "CLOSED",
         upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
         upw == "hybrid" ~ "HYBRID",
+        taverne ~ "GREEN",
         upw == "green" ~ "GREEN",
         upw == "closed" ~ "CLOSED",
         TRUE ~ "CLOSED"),
       OA_label_explainer = case_when(
         doaj ~ "DOAJ",
         vsnu ~ "VSNU",
-        taverne ~ "TAVERNE",
         upw == "bronze" ~ "UPW (bronze)",
         upw == "gold" ~ "UPW (gold)", 
         upw == "hybrid" ~ "UPW (hybrid)",
+        taverne ~ "TAVERNE",
         upw == "green" ~ "UPW (green)",
         upw == "closed" ~ "UPW (closed)",
         TRUE ~ "NONE")
