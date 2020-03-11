@@ -1,51 +1,73 @@
-# Monitoring Open Access at UU in 2018
+# Monitoring Open Access at UU in 2019
 This project takes publication data from a single year at Utrecht University / UMC Utrecht, and determines per article its open access status, using various sources available. It uses peer reviewed journal articles registered in PURE at UU and UMCU as input.
 
 ## UU and UMCU output:
 
 ### UU Pure Data
 Source: Functioneel Beheer Pure, via M&A
-Date: March 1st 2019
-Content: All peer reviewed journal articles with publication year 2018 for each organisational unit (duplicate articles when co-authors are from different organisational units)
+Date: March 9th 2020
+Content: All peer reviewed journal articles with publication year 2019 for each organisational unit (duplicate articles when co-authors are from different organisational units)
 
 ### UMCU Pure Data
 Source: Functioneel Beheer Pure, via M&A
-Date: March 1st 2019
-Content: All peer reviewed journal articles with publication year 2018
+Date: March 9th 2020
+Content: All peer reviewed journal articles with publication year 2019
 
-## Matching to obtain Open Access status
-The pipeline tries to classify all publications according to its presence or absence in various check lists. In sequence:
-
-1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). If the journal matches, the publication is Gold OA
-2. match the DOI with a list obtained from VSNU. If the journal matches, the publication is Hybrid OA
-3. obtain the OA status from Unpaywall. If the status is publisher, the publication is Hybrid OA. If the status is repository, the publication is Green OA.
-4. obtain the OA status from Pure. If the status is Open, the publication is Hybrid OA, unless
-4a. a version of the publication is Open, but not the publisher version: the publication is Green OA.
-4b. the publisher version is open, but was previously under closed under embargo: the publication is Green OA.
-4. if publication matches none of the above, the publication has an unknown OA status and is considered closed.
+## Gathering OA information
+The pipeline harvests OA information from the following sources:
 
 ### DOAJ Data
 Source: On SURF Drive, OA Monitoring
-Date: December 31st 2018
+Date: December 31st 2019
 Content: all journals listed on DOAJ and therefore labeled as Full OA
+Result: doaj = TRUE/FALSE
 
 ### VSNU data
-Source: compiled from VSNU OA data on Surfdrive, OA Deals (2016 up until 2018)
-Date: March 4th 2018
+Source: compiled from VSNU OA data on Surfdrive, OA Deals (2016 up until january 2020)
+Date: March 4th 2019
 Content: Cumulative list of all OA articles published within the Netherlands (not restricted to Utrecht) as part of the VSNU OA deal, including DOI, publisher and publication year.
+Result: vsnu = TRUE/FALSE
 
 ### Unpaywall data
-Retrieve OA status according to Unpaywall, using their API (http://unpaywall.org/products/api).
+OA status according to Unpaywall, retrieved using their API (http://unpaywall.org/products/api).
+Result: ups = bronze/closed/doaj/gold/green/hybrid/NA
 
-### OA Status in Pure
-OA Status in Pure is determined by employees of Utrecht University Library who manually check each publication added to Pure, add the full text and determine if it is OA available (Open/Embargoed/Closed). Distinguishing between types of OA availability is at this moment not part of this procedure.
+### OA data in Pure
+Source: data available within UU/UMCU Pure report
+Date: March 9th 2019
+Content: Taverne keyword in Pure, used to determine Green OA Status and identify the Taverne share in Green OA. OA Status in Pure and file and file availability in repository. OA status is determined by employees of Utrecht University Library who manually check each publication added to Pure, add the full text and determine if it is OA available (Open/Embargoed/Closed). OA status and file availability are at this moment not part of the pipeline but are being used to identify items for the manual check.
+Result: taverne = TRUE/FALSE
+
+## Assigning OA labels
+Each item has a OA label assigned based on the OA information harvested in a specific order:
+
+doaj=TRUE: GOLD | DOAJ
+vsnu=TRUE: HYBRID | VSNU
+upw=BRONZE: CLOSED | UPW (bronze)
+upw=GOLD: HYBRID | UPW (gold)
+upw=HYBRID: HYBRID | UPW (hybrid)
+taverne=TRUE: GREEN | TAVERNE
+upw=GREEN: GREEN | UPW (GREEN)
+upw=CLOSED: CLOSED | UPW (closed)
+None of the above: CLOSED | NONE
+
 
 ## Manual check for OA status
-A manual check might be benificiary for those titles that do not have a DOI. We only check these titles when within an organizational unit the number of titles without a DOI is at least 5% of the total number of titles within that organizational unit.
+Items with the OA label  CLOSED | NONE are considered for a manual check:
+
+### OA status and file availability in Pure
+All items that have OA status = OPEN in Pure and have a file attached in the repository are considered OA available, either Hybrid or Green.
+1. Author Accepted Manuscript in repository OR publisher version is open after embargo: GREEN | cris_green.
+2. Publisher version immediately open access in repository: HYBRID | cris_hybrid.
+
+### Other items
+All other items with the OA label CLOSED | NONE, where these items represent at least 5% of the total number of titles within that organizational unit, are checked for OA availability using a Google / Google Scholar search.
+1. OA article in journal: HYBRID |  cris_hybrid.
+2. OA article in trusted repository: GREEN | cris_green.
 
 ## Reporting OA status
 
-The OA status (4 categories) is reported regarding three organizational levels:
+The OA status (GOLD/HYBRID/GREEN/CLOSED) is reported regarding three organizational levels:
 - UU/UMCU total
 - For each faculty
 - For each HOOP-gebied (the division of Dutch Higher Education and Research into eight categories: Landbouw (Agriculture), Natuur (Nature), Techniek (Technique), Gezondheid (Health), Gedrag en Maatschappij (Behaviour and Society), Economie (Economics), Recht (Law), Taal en Cultuur (Language and Culture). Each faculty or department is assigned to one HOOP category. 
