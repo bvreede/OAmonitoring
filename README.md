@@ -4,80 +4,80 @@ This project takes publication data from a single year at Utrecht University / U
 ## UU and UMCU output:
 
 ### UU Pure Data
-Source: Functioneel Beheer Pure, via M&A
-Date: March 9th 2020
+Source: Functioneel Beheer Pure, via M&A  
+Date: March 9th 2020  
 Content: All peer reviewed journal articles with publication year 2019 for each organisational unit (duplicate articles when co-authors are from different organisational units)
 
 ### UMCU Pure Data
-Source: Functioneel Beheer Pure, via M&A
-Date: March 9th 2020
+Source: Functioneel Beheer Pure, via M&A  
+Date: March 9th 2020  
 Content: All peer reviewed journal articles with publication year 2019
 
 ## Gathering OA information
 The pipeline harvests OA information from the following sources:
 
 ### DOAJ Data
-Source: On SURF Drive, OA Monitoring
-Date: December 31st 2019
-Content: all journals listed on DOAJ and therefore labeled as Full OA
+Source: On SURF Drive, OA Monitoring  
+Date: December 31st 2019  
+Content: all journals listed on DOAJ and therefore labeled as Full OA  
 Result: doaj = TRUE/FALSE
 
 ### VSNU data
-Source: compiled from VSNU OA data on Surfdrive, OA Deals (2016 up until january 2020)
-Date: March 4th 2019
-Content: Cumulative list of all OA articles published within the Netherlands (not restricted to Utrecht) as part of the VSNU OA deal, including DOI, publisher and publication year.
+Source: compiled from VSNU OA data on Surfdrive, OA Deals (2016 up until january 2020)  
+Date: March 4th 2019  
+Content: Cumulative list of all OA articles published within the Netherlands (not restricted to Utrecht) as part of the VSNU OA deal, including DOI, publisher and publication year.  
 Result: vsnu = TRUE/FALSE
 
 ### Unpaywall data
-OA status according to Unpaywall, retrieved using their API (http://unpaywall.org/products/api).
+OA status according to Unpaywall, retrieved using their API (http://unpaywall.org/products/api).  
 Result: ups = bronze/closed/doaj/gold/green/hybrid/NA
 
 ### OA data in Pure
-Source: data available within UU/UMCU Pure report
-Date: March 9th 2019
-Content: Taverne keyword in Pure, used to determine Green OA Status and identify the Taverne share in Green OA. OA Status in Pure and file and file availability in repository. OA status is determined by employees of Utrecht University Library who manually check each publication added to Pure, add the full text and determine if it is OA available (Open/Embargoed/Closed). OA status and file availability are at this moment not part of the pipeline but are being used to identify items for the manual check.
+Source: data available within UU/UMCU Pure report  
+Date: March 9th 2019  
+Content: Taverne keyword in Pure, used to determine Green OA Status and identify the Taverne share in Green OA. OA Status in Pure and file and file availability in repository. OA status is determined by employees of Utrecht University Library who manually check each publication added to Pure, add the full text and determine if it is OA available (Open/Embargoed/Closed). OA status and file availability are at this moment not part of the pipeline but are being used to identify items for the manual check.  
 Result: taverne = TRUE/FALSE
 
 ## Assigning OA labels
 Each item has a OA label assigned based on the OA information harvested in a specific order:
 
-doaj=TRUE: GOLD | DOAJ
-vsnu=TRUE: HYBRID | VSNU
-upw=BRONZE: CLOSED | UPW (bronze)
-upw=GOLD: HYBRID | UPW (gold)
-upw=HYBRID: HYBRID | UPW (hybrid)
-taverne=TRUE: GREEN | TAVERNE
-upw=GREEN: GREEN | UPW (GREEN)
-upw=CLOSED: CLOSED | UPW (closed)
-None of the above: CLOSED | NONE
+doaj=TRUE: GOLD | DOAJ  
+vsnu=TRUE: HYBRID | VSNU  
+upw=BRONZE: CLOSED | UPW (bronze)  
+upw=GOLD: HYBRID | UPW (gold)  
+upw=HYBRID: HYBRID | UPW (hybrid)  
+taverne=TRUE: GREEN | TAVERNE  
+upw=GREEN: GREEN | UPW (GREEN)  
+upw=CLOSED: CLOSED | UPW (closed)  
+None of the above: CLOSED | NONE  
 
 
 ## Manual check for OA status
 Items with the OA label  CLOSED | NONE are considered for a manual check:
 
 ### OA status and file availability in Pure
-All items that have OA status = OPEN in Pure and have a file attached in the repository are considered OA available, either Hybrid or Green.
-1. Author Accepted Manuscript in repository OR publisher version is open after embargo: GREEN | cris_green.
+All items that have OA status = OPEN in Pure and have a file attached in the repository are considered OA available, either Hybrid or Green.  
+1. Author Accepted Manuscript in repository OR publisher version is open after embargo: GREEN | cris_green.  
 2. Publisher version immediately open access in repository: HYBRID | cris_hybrid.
 
 ### Other items
-All other items with the OA label CLOSED | NONE, where these items represent at least 5% of the total number of titles within that organizational unit, are checked for OA availability using a Google / Google Scholar search.
-1. OA article in journal: HYBRID |  cris_hybrid.
-2. OA article in trusted repository: GREEN | cris_green.
+All other items with the OA label CLOSED | NONE, where these items represent at least 5% of the total number of titles within that organizational unit, are checked for OA availability using a Google / Google Scholar search.  
+1. OA article in journal: HYBRID |  cris_hybrid.  
+2. OA article in trusted repository: GREEN | cris_green.  
 
 ## Reporting OA status
 
-The OA status (GOLD/HYBRID/GREEN/CLOSED) is reported regarding three organizational levels:
-- UU/UMCU total
-- For each faculty
+The OA status (GOLD/HYBRID/GREEN/CLOSED) is reported regarding three organizational levels:  
+- UU/UMCU total  
+- For each faculty  
 - For each HOOP-gebied (the division of Dutch Higher Education and Research into eight categories: Landbouw (Agriculture), Natuur (Nature), Techniek (Technique), Gezondheid (Health), Gedrag en Maatschappij (Behaviour and Society), Economie (Economics), Recht (Law), Taal en Cultuur (Language and Culture). Each faculty or department is assigned to one HOOP category. 
 
 ## Future or bespoke use of this script
 When re-using this script, adjust the following things:
 
-- At the top of the script, adjust the file paths for your source data (use of a `data` folder is strongly recommended);
-- Consider that this script was written for two datasets (UU and UMCU); they are labeled as such in the script. If you have a single source file you may need to manually adjust the script to reflect this, however, you can also get in touch if you need a single source file version of this script, and are unable to adjust the script yourself;
-- Adjust the column names in the section 'renaming columns ...', to reflect those used in your source files. 
+- At the top of the script, adjust the file paths for your source data (use of a `data` folder is strongly recommended);  
+- Consider that this script was written for two datasets (UU and UMCU); they are labeled as such in the script. If you have a single source file you may need to manually adjust the script to reflect this, however, you can also get in touch if you need a single source file version of this script, and are unable to adjust the script yourself;  
+- Adjust the column names in the section 'renaming columns ...', to reflect those used in your source files.  
 - In the `upw_api` function, adjust the email address to reflect the current user; 
 - In the 'unpaywall' section of 'OA labelling', choose 'api' or 'csv' for the variable `api_csv`, depending on whether you want to load existing unpaywall data ('csv'), or re-run the unpaywall analysis via their api ('api')
 
