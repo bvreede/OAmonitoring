@@ -35,7 +35,10 @@ Result: ups = bronze/closed/doaj/gold/green/hybrid/NA
 ### OA data in Pure
 Source: data available within UU/UMCU Pure report  
 Date: March 9th 2019  
-Content: Taverne keyword in Pure, used to determine Green OA Status and identify the Taverne share in Green OA. OA Status in Pure and file and file availability in repository. OA status is determined by employees of Utrecht University Library who manually check each publication added to Pure, add the full text and determine if it is OA available (Open/Embargoed/Closed). OA status and file availability are at this moment not part of the pipeline but are being used to identify items for the manual check.  
+Content:  
+Taverne keyword in Pure, used to determine Green OA Status and identify the Taverne share in Green OA.  
+OA Status in Pure and file and file availability in repository. OA status is determined by employees of Utrecht University Library who manually check each publication added to Pure, add the full text and determine if it is OA available (Open/Embargoed/Closed).  
+OA status and file availability are at this moment not part of the pipeline but are being used to identify items for the manual check.  
 Result: taverne = TRUE/FALSE
 
 ## Assigning OA labels
