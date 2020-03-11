@@ -1,7 +1,19 @@
 # Monitoring Open Access at UU in 2019
 This project takes publication data from a single year at Utrecht University / UMC Utrecht, and determines per article its open access status, using various sources available. It uses peer reviewed journal articles registered in PURE at UU and UMCU as input.
 
-## UU and UMCU output:
+## UU and UMCU output
+
+UU and UMCU peer reviewed articles are retrieved from the CRIS (both organizations have a separate PURE CRIS). Information retrieved from Pure includes the following fields that are essential for the OA monitor.  
+1. ID: for deduplication and returning results from manual check
+2. Organisations > Organisational unit: for reporting purposes (faculty/HOOP).  
+3. Title of the contribution in original language: for performing manual checks
+4. Journal > ISSN: for DOAJ data retrieval
+5. Electronic version(s) of this work > DOI (Digital Object Identifier): for VSNU and UPW data retrieval
+6. Open Access status: for manual check
+7. Electronic version(s) of this work > Document version: for manual check
+8. Electronic version(s) of this work > File > File name: for manual check
+
+
 
 ### UU Pure Data
 Source: Functioneel Beheer Pure, via M&A  
