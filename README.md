@@ -56,17 +56,19 @@ None of the above: CLOSED | NONE
 
 
 ## Manual check for OA status
-Items with the OA label  CLOSED | NONE are considered for a manual check:
+Items with the OA label  CLOSED | NONE are considered for a manual check. The PURE-IDs of the OA available items are listed in a spreadsheet, one column for Hybrid OA and one column for Green OA. The result is returned to the pipeline, resulting in the following labels:  
+cris_hybrid=TRUE: HYBRID | CUSTOM  
+cris_green=TRUE: GREEN | CUSTOM  
 
 ### OA status and file availability in Pure
 All items that have OA status = OPEN in Pure and have a file attached in the repository are considered OA available, either Hybrid or Green.  
-1. Author Accepted Manuscript in repository OR publisher version is open after embargo: GREEN | cris_green.  
-2. Publisher version immediately open access in repository: HYBRID | cris_hybrid.
+1. Author Accepted Manuscript in repository OR publisher version is open after embargo: GREEN  
+2. Publisher version immediately open access in repository: HYBRID
 
 ### Other items
 All other items with the OA label CLOSED | NONE, where these items represent at least 5% of the total number of titles within that organizational unit, are checked for OA availability using a Google / Google Scholar search.  
-1. OA article in journal: HYBRID |  cris_hybrid.  
-2. OA article in trusted repository: GREEN | cris_green.  
+1. OA article in journal: HYBRID 
+2. OA article in trusted repository: GREEN
 
 ## Reporting OA status
 
