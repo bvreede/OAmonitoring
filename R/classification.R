@@ -155,11 +155,12 @@ or 'saved' to use saved data that was previously mined from the DOAJ API.")
 
 upw_pipeline <- function(df){
   if(use_upw=="api"){
-  df <- df %>% 
+  df <- df %>%
     api_to_df("upw")
   save_df(df, "upw")
   } else if(use_upw=="saved"){
-    df <- read_csv(path_upw)
+    df <- read_csv(path_upw) %>%
+      filter(!duplicated(doi)) # just in case any dois are inadvertently duplicated
   } else{
     warning("Not sure what Unpaywall data to use.
 Please indicate this in the config.R file, using the option 'api' for use of the Unpaywall API,
