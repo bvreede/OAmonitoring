@@ -50,7 +50,7 @@ Date: March 9th 2019
 Content:  
 Taverne keyword in Pure, used to determine Green OA Status and identify the Taverne share in Green OA.  
 OA Status in Pure and file and file availability in repository. OA status is determined by employees of Utrecht University Library who manually check each publication added to Pure, add the full text and determine if it is OA available (Open/Embargoed/Closed).  
-OA status and file availability are at this moment not part of the pipeline but are being used to identify items for the manual check.  
+OA status is at this moment not part of the pipeline but is being used to identify items for the manual check.  
 Result: taverne = TRUE/FALSE
 
 ## Assigning OA labels
@@ -60,22 +60,19 @@ doaj=TRUE: GOLD | DOAJ
 vsnu=TRUE: HYBRID | VSNU  
 upw=BRONZE: CLOSED | UPW (bronze)  
 upw=GOLD: HYBRID | UPW (gold)  
-upw=HYBRID: HYBRID | UPW (hybrid)  
-taverne=TRUE: GREEN | TAVERNE  
+upw=HYBRID: HYBRID | UPW (hybrid)
 upw=GREEN: GREEN | UPW (GREEN)  
 upw=CLOSED: CLOSED | UPW (closed)  
 None of the above: CLOSED | NONE  
 
+## UU specific checks, not part of the pipeline UU Only
 
-## Manual check for OA status
-Items with the OA label  CLOSED | NONE are considered for a manual check. The PURE-IDs of the OA available items are listed in a spreadsheet, one column for Hybrid OA and one column for Green OA. The result is returned to the pipeline, resulting in the following labels:  
-cris_hybrid=TRUE: HYBRID | CUSTOM  
-cris_green=TRUE: GREEN | CUSTOM  
 
 ### OA status and file availability in Pure
+
+taverne=TRUE: GREEN | TAVERNE  
 All items that have OA status = OPEN in Pure and have a file attached in the repository are considered OA available, either Hybrid or Green.  
-1. Author Accepted Manuscript in repository OR publisher version is open after embargo: GREEN  
-2. Publisher version immediately open access in repository: HYBRID
+cris_green=TRUE: GREEN | CUSTOM  
 
 ### Other items
 All other items with the OA label CLOSED | NONE, where these items represent at least 5% of the total number of titles within that organizational unit, are checked for OA availability using a Google / Google Scholar search.  
