@@ -93,11 +93,6 @@ infocheck <- function(df,checkthese){
   return(checkthese)
 }
 
-
-
-
-
-
 full_report <- function(df){
   ## Write a general report for the entire dataset
   df_report <- df %>% 
@@ -124,8 +119,39 @@ full_report <- function(df){
   return(df_report)
 }
 
-
-
+report_image <- function(df,title="title"){
+  oacols <- c("gray88","chartreuse3","orange3","gold1")
+  outputfile <- paste0("output/plot_",title)
+  out_prop <- paste0(outputfile,"_prop.png")
+  out_num <- paste0(outputfile,"_number.png")
+  
+  # ensure levels of df are in order: closed/green/hybrid/gold
+  df$OA_label <- factor(df$OA_label, levels = c("CLOSED","GREEN","HYBRID","GOLD"))
+  
+  p <- ggplot(df, aes(x = org_unit, fill = OA_label)) +
+    scale_fill_manual(values = oacols) +
+    theme_bw() +
+    labs(title = title,
+      x = "",
+      fill = "Access type") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  
+  # PLOT PROPORTION
+  plot_prop <- p +
+    ylab("proportion of papers") +
+    geom_bar(position="fill")
+  
+  ggsave(filename = out_prop, plot = plot_prop, device=png())
+  dev.off()
+  
+  # PLOT ACTUAL NUMBER
+  plot_num <- p + 
+    ylab("number of papers") +
+    geom_bar()
+  
+  ggsave(filename = out_num, plot = plot_num, device=png())
+  dev.off()
+}
 
 #reporting <- read_excel("./config/reports.xlsx")
 #reporting <- reporting[2:ncol(reporting)]
