@@ -6,31 +6,24 @@ library(jsonlite)
 library(httr)
 library(magrittr)
 library(lubridate)
-
 library(docstring)
 library(testthat)
-
 
 # source scripts with functions and paths
 source("config/config.R")
 source("R/clean_data.R")
+source("R/classification.R")
 
 # Generate output folders
 dir.create("data/clean")
 dir.create("output/")
 
-
-
+# STEP ONE: OPEN, CLEAN, AND COMBINE THE DATASETS
 allfiles <- read_excel("config/config_pub_files.xlsx")
-
-
-# STEP ONE: CLEAN THE DATASETS AND COMBINE THEM
 df <- open_everything(allfiles)
 
 # STEP TWO: APPLY CLASSIFICATION
 # NB: all data collected here is automatically saved in data/clean
-
-source("R/classification.R")
 
 # get data from VSNU, DOAJ, UPW
 vsnudf <- get_vsnu(path_vsnu)
