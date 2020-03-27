@@ -7,7 +7,6 @@ library(httr)
 library(magrittr)
 library(lubridate)
 
-library(dplyr)
 library(docstring)
 library(testthat)
 
@@ -18,6 +17,7 @@ source("R/clean_data.R")
 
 # Generate output folders
 dir.create("data/clean")
+dir.create("output/")
 
 
 
@@ -25,44 +25,13 @@ allfiles <- read_excel("config/config_pub_files.xlsx")
 
 
 # STEP ONE: CLEAN THE DATASETS AND COMBINE THEM
-
-alldata <- list()
-
-for(col in allfiles){
-  # extract file name and extension
-  fn <- col[allfiles$File_info=="Filename"]
-  fn_ext <- str_split(fn,"\\.")[[1]]
-  
-  # test if the column contains NAs; in this case the file will not be read
-  if(sum(is.na(col))>0){
-    warning("The information for file ", fn, " is not filled out. This file cannot be processed.\n")
-    next
-  } 
-  # skip filenames without extensions
-  # NB this automatically skips the first column with row names
-  if(length(fn_ext) < 2){
-    if(!fn == allfiles[1,1]){ # this behavior is acceptable with the header.
-      warning("The filename ", fn, " does not have an extension. This file cannot be processed.\n")
-    }
-    next
-  }
-
-  # open the file, clean columns, and save to the alldata list
-  alldata[[fn]] <- open_clean(fn)
-}
-
-# remove excess variables, bind to dataframe
-df <- bind_rows(alldata)
-rm(allfiles,alldata,fn, fn_ext, col)
-
-# check the system IDs for duplicates
-system_id_check(df)
-
+df <- open_everything(allfiles)
 
 # STEP TWO: APPLY CLASSIFICATION
 # NB: all data collected here is automatically saved in data/clean
 
 source("R/classification.R")
+
 # get data from VSNU, DOAJ, UPW
 vsnudf <- get_vsnu(path_vsnu)
 doajdf <- doaj_pipeline(df)
@@ -70,8 +39,6 @@ upwdf <- upw_pipeline(df)
 
 # perform the classification
 df <- classify_oa(df)
-
-
 
 # STEP THREE: REPORT
 source("R/reporting.R")
@@ -89,6 +56,10 @@ checkthese %>% deduplicate() %>% write_csv("output/checkthese.csv")
 
 
 full_report(df) %>% write_csv("output/full_report.csv")
+
+# custom
+df_custom <- classify_oa_custom(df)
+full_report(df_custom) %>% write_csv("output/full_report_custom.csv")
 
 
 oacols <- c("gray88","gold1","chartreuse3","orange3")

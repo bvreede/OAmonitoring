@@ -1,3 +1,42 @@
+open_everything <- function(allfiles){
+  alldata <- list()
+  
+  for(col in allfiles){
+    # extract file name and extension
+    fn <- col[allfiles$File_info=="Filename"]
+    fn_ext <- str_split(fn,"\\.")[[1]]
+    
+    # test if the column contains NAs; in this case the file will not be read
+    if(sum(is.na(col))>0){
+      warning("The information for file ", fn, " is not filled out. This file cannot be processed.\n")
+      next
+    } 
+    # skip filenames without extensions
+    # NB this automatically skips the first column with row names
+    if(length(fn_ext) < 2){
+      if(!fn == allfiles[1,1]){ # this behavior is acceptable with the header.
+        warning("The filename ", fn, " does not have an extension. This file cannot be processed.\n")
+      }
+      next
+    }
+    
+    # open the file, clean columns, and save to the alldata list
+    alldata[[fn]] <- open_clean(col)
+  }
+  
+  # remove excess variables, bind to dataframe
+  df <- bind_rows(alldata)
+  #rm(allfiles,alldata,fn, fn_ext, col)
+  
+  # check the system IDs for duplicates
+  system_id_check(df)
+  
+  return(df)
+}
+
+
+
+
 read_ext <- function(fn, dir="data/"){
   # opening a file, with method depending on the extension
   # extract extension and put together filename
@@ -69,9 +108,12 @@ clean_doi <- function(column){
 }
 
 
-open_clean <- function(fn){
+open_clean <- function(col_config){
+  # extract file name
+  fn <- col_config[allfiles$File_info=="Filename"]
+  
   # open the file and adjust the column names to the config input
-  df <- read_ext(fn) %>% column_rename(col)
+  df <- read_ext(fn) %>% column_rename(col_config)
   
   # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
   # also add source file column
