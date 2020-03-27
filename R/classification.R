@@ -21,6 +21,7 @@ get_vsnu <- function(path){
 
 ### CUSTOM LABELS
 get_custom <- function(path){
+  #TODO confirm that custom path exists
   # get the dataframe with custom IDS
   custom <- read_ext(path, "")
   cris_green <- custom %>% 
@@ -204,6 +205,9 @@ apply_doaj <- function(df){
 }
 
 apply_custom <- function(df){
+  if(customized == FALSE){
+    return(df)
+  }
   custom_list <- get_custom(path_custom)
   df <- df %>% mutate(
     taverne = system_id%in%custom_list$taverne,
@@ -244,9 +248,37 @@ classify_oa <- function(df){
         upw == "bronze" ~ "CLOSED",
         upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
         upw == "hybrid" ~ "HYBRID",
+        upw == "green" ~ "GREEN",
+        upw == "closed" ~ "CLOSED",
+        TRUE ~ "CLOSED"),
+      OA_label_explainer = case_when(
+        doaj ~ "DOAJ",
+        vsnu ~ "VSNU",
+        upw == "bronze" ~ "UPW (bronze)",
+        upw == "gold" ~ "UPW (gold)", 
+        upw == "hybrid" ~ "UPW (hybrid)",
+        upw == "green" ~ "UPW (green)",
+        upw == "closed" ~ "UPW (closed)",
+        TRUE ~ "NONE")
+    )
+  save_df(df, "all")
+  return(df)
+}
+
+#TODO merge custom and classification
+classify_oa_custom <- function(df){
+  df <- df %>%
+    apply_matches() %>%
+    mutate(
+      OA_label = case_when(
+        doaj ~ "GOLD",
+        vsnu ~ "HYBRID",
+        upw == "bronze" ~ "CLOSED",
+        upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
+        upw == "hybrid" ~ "HYBRID",
         taverne ~ "GREEN",
         upw == "green" ~ "GREEN",
-        cris_hybrid ~ "HYBRID",
+        cris_hybrid ~ "GREEN",
         cris_green ~ "GREEN",
         upw == "closed" ~ "CLOSED",
         TRUE ~ "CLOSED"),
@@ -263,6 +295,6 @@ classify_oa <- function(df){
         upw == "closed" ~ "UPW (closed)",
         TRUE ~ "NONE")
     )
-  save_df(df, "all")
+  save_df(df, "all_custom")
   return(df)
 }
