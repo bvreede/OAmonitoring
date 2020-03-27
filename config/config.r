@@ -1,7 +1,7 @@
 # VSNU
-#path_vsnu <- "data/mockdata_VSNUdeal.xlsx"
+path_vsnu <- "data/mockdata_VSNUdeal.xlsx"
 #path_vsnu <- "data/VSNU_2019_only.xlsx"
-path_vsnu <- "data/VSNU-cummulatief_WOA20200302.xlsx"
+#path_vsnu <- "data/VSNU-cummulatief_WOA20200302.xlsx"
 path_taverne <- "data/taverne.csv"
 path_custom <- "data/custom_labels.xlsx"
 
@@ -20,5 +20,8 @@ report_year <- 2019
 use_doaj <- "saved" # "saved" or "api"
 use_upw <- "saved" # "saved" or "api"
 
-path_doaj <- "data/clean/doaj_from_issn_2020-03-09.csv"
-path_upw <- "data/clean/upw_from_doi_2020-03-09.csv"
+path_doaj <- "data/clean/doaj_from_issn_2020-02-27.csv"
+path_upw <- "data/clean/upw_from_doi_2020-02-27.csv"
+
+# Do you want to add custom entries (green OA)? For yes: enter TRUE.
+customized <- FALSE
