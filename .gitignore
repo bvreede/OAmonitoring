@@ -39,7 +39,10 @@ vignettes/*.pdf
 .Renviron
 
 # Mac specific
-*.DS_Store
+.DS_Store
+
+# Excel and other office files being edited
+~*
 
 # For this repository
 data/clean
