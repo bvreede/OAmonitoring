@@ -6,18 +6,20 @@
 #### to be reported on.
 
 
+
+#'@title Report on deduplication effort
 report <- function(nrecords_post,nrecords,method){
-  cat("Deduplicating by ")
-  cat(method)
-  cat(" from ")
-  cat(nrecords)
-  cat(" records, ")
-  cat(nrecords-nrecords_post)
-  cat(" were deleted.")
-  cat(" This df now contains ")
-  cat(nrecords_post)
-  cat(" records.")
-  cat("\n\n")
+  message <- paste("Deduplicating by",
+                   method,
+                   "from",
+                   nrecords,
+                   "records,",
+                   nrecords-nrecords_post,
+                   "were deleted.\n",
+                   "This df now contains",
+                   nrecords_post,
+                   "records.\n\n")
+  cat(message)
 }
 
 
