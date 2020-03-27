@@ -121,9 +121,9 @@ full_report <- function(df){
 
 report_image <- function(df,title="title"){
   oacols <- c("gray88","chartreuse3","orange3","gold1")
-  outputfile <- paste0("output/plot_",title)
-  out_prop <- paste0(outputfile,"_prop.png")
-  out_num <- paste0(outputfile,"_number.png")
+  outfile <- paste0("output/plot_",title)
+  out_prop <- paste0(outfile,"_prop.png")
+  out_num <- paste0(outfile,"_number.png")
   
   # ensure levels of df are in order: closed/green/hybrid/gold
   df$OA_label <- factor(df$OA_label, levels = c("CLOSED","GREEN","HYBRID","GOLD"))
@@ -153,17 +153,36 @@ report_image <- function(df,title="title"){
   dev.off()
 }
 
-#reporting <- read_excel("./config/reports.xlsx")
-#reporting <- reporting[2:ncol(reporting)]
+open_reporting <- function(path){
+  reporting <- read_excel(path)
+  reporting <- reporting[2:ncol(reporting)]
+  return(reporting)
+}
 
-#for(r in seq_along(reporting)){
-#  name <- colnames(reporting)[r]
-#  col <- pull(reporting, name)
-#  units <- col[!is.na(col)]
-#  df_r <- df %>% filter(org_unit%in%units)
-#  name_slug <- str_replace(name," ","_")
-#  outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
-#  full_report(df_r) %>% write_csv(outfilename)
-#}
+commandline_report <- function(name){
+  name_upper <- str_to_upper(name)
+  message <- paste(
+    "\n\n#### GENERATING REPORT FOR",
+    name_upper,
+    "####\n\n"
+    )
+  cat(message)
+}
+
+individual_reports <- function(reporting){
+  for(r in seq_along(reporting)){
+    name <- colnames(reporting)[r]
+    commandline_report(name)
+    col <- pull(reporting, name)
+    units <- col[!is.na(col)]
+    df_r <- df %>% filter(org_unit%in%units)
+    name_slug <- str_replace(name," ","_")
+    outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
+    full_report(df_r) %>% write_csv(outfilename)
+    report_image(df_r,name_slug)
+  }
+}
+
+
 
 
