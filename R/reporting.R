@@ -22,17 +22,16 @@ report <- function(nrecords_post,nrecords,method){
   cat(message)
 }
 
-
+#' @title Deduplicate publication entries
+#' 
+#' Deduplication function that takes a dataframe and returns
+#' the deduplicated dataframe based on either the combination of source file and
+#' their internal ID in that source, or DOI.
+#' Reports on the deduplication performed.
+#' @param df The dataframe that needs to be deduplicate
+#' @param method The deduplication method, can be either "doi" or "internal"
+#' @return The deduplicated dataframe
 deduplicate_method <- function(df,method){
-  #' @title Deduplicate publication entries
-  #' 
-  #' Deduplication function that takes a dataframe and returns
-  #' the deduplicated dataframe based on either the combination of source file and
-  #' their internal ID in that source, or DOI.
-  #' Reports on the deduplication performed.
-  #' @param df The dataframe that needs to be deduplicate
-  #' @param method The deduplication method, can be either "doi" or "internal"
-  #' @return The deduplicated dataframe
   ### tests ###
   # input is a dataframe
   expect_that(df, is_a("data.frame"))
@@ -54,17 +53,15 @@ deduplicate_method <- function(df,method){
   return(df)
 }
 
-
+#' @title Deduplication of publication entries
+#' 
+#' Deduplication function that uses a single dataframe and applies a variety
+#' of deduplication functions to subsets of the dataframe.
+#' Required to use before reporting on a subset of publications, so that no bias is created
+#' in the results if a publication is entered multiple times by different groups, eg.
+#' @param df The dataframe that needs to be deduplicated.
+#' @return The deduplicated dataframe.
 deduplicate <- function(df){
-  #' @title Deduplication of publication entries
-  #' 
-  #' Deduplication function that uses a single dataframe and applies a variety
-  #' of deduplication functions to subsets of the dataframe.
-  #' Required to use before reporting on a subset of publications, so that no bias is created
-  #' in the results if a publication is entered multiple times by different groups, eg.
-  #' @param df The dataframe that needs to be deduplicated.
-  #' @return The deduplicated dataframe.
-  #################################
   # first determine whether there is a mix of multiple source files
   sourcefiles <- df$source %>% as.factor() %>% levels()
   # if a single source file has been used, deduplication can be performed on system ID
