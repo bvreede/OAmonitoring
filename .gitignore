@@ -40,3 +40,7 @@ vignettes/*.pdf
 
 # Mac specific
 *.DS_Store
+
+# For this repository
+data/clean
+output/
