@@ -24,19 +24,14 @@ get_custom <- function(path){
   #TODO confirm that custom path exists
   # get the dataframe with custom IDS
   custom <- read_ext(path, "")
-  cris_green <- custom %>% 
-    pull(Green) %>% 
-    remove_na()
-  cris_hybrid <- custom %>% 
-    pull(Hybrid) %>% 
-    remove_na()
-  taverne <- custom %>% 
-    pull(Taverne) %>% 
-    remove_na()
-  custom_list <- list("taverne"=taverne,"cris_green"=cris_green,"cris_hybrid"=cris_hybrid)
+  custom_list <- list()
+  customlabels <- colnames(custom)
+  for(label in customlabels){
+    ids <- custom %>% pull(label) %>% remove_na()
+    custom_list[[label]] <- ids
+  }
   return(custom_list)
 }
-
 
 extract_uniques <- function(column){
   #' Uses unique and NA removal to retrieve
@@ -76,8 +71,6 @@ upw_api <- function(doi,email = email_address){
   return(result_line)
 }
 
-
-
 api_to_df <- function(df, which_info){
   #' Using an API mining  function, query all unique
   #' entries in a column, and return a data frame
@@ -108,14 +101,13 @@ api_to_df <- function(df, which_info){
   return(collectdf)
 }
 
-
+#' Specifically used to process the data frame
+#' that results from a doaj mining query.
+#' ISSN numbers are in a nested format, 
+#' they need to be un-nested.
+#' For the ease of future processing, the ISSN
+#' columns are renamed.
 process_doaj <- function(df){
-  #' Specifically used to process the data frame
-  #' that results from a doaj mining query.
-  #' ISSN numbers are in a nested format, 
-  #' they need to be un-nested.
-  #' For the ease of future processing, the ISSN
-  #' columns are renamed.
   df <- df %>%
     # unnest the issn information in the bibjson.identifier column
     unnest(bibjson.identifier, keep_empty = T, names_sep="_") %>%
@@ -204,20 +196,66 @@ apply_doaj <- function(df){
   return(df)
 }
 
+custom_label <- function(column,custom_list){
+  nlabels <- custom_list %>% names() %>% length()
+  
+  # Make a dataframe from the IDs in the column
+  # and determine whether they are labeled in any of
+  # the custom columns.
+  label_list <- list()
+  for(label in names(custom_list)){
+    outlist <- NULL
+    for(id in column){
+      if(id%in%custom_list[[label]]){
+         outlist <- c(outlist,label)
+      } else{
+        outlist <- c(outlist, NA)
+      }
+      label_list[[label]] <- outlist
+    }
+  }
+  label_df <- bind_rows(label_list)
+  
+  # Process this dataframe, to have an ID and
+  # a T/F column that checks if any of the labels are
+  # filled out.
+  label_df <- label_df %>%
+    mutate(ID = 1:n(),
+           custom_green = rowSums(is.na(label_df)),
+           custom_green = custom_green < nlabels)
+  custom_return <- label_df %>% pull(custom_green)
+  
+  # Gather all labels in a single column. With a right
+  # join back, this will ensure each label is in the right place.
+  label_df <- label_df %>% 
+    gather(label_header, label, -ID, -custom_green, na.rm=T) %>%
+    right_join(label_df, by="ID")
+  
+  # Multiple labels will make the dataframe
+  # unusable to merge back to the original. In this case,
+  # the previously generated custom_green column will be used.
+  if(nrow(label_df) != length(column)){
+    warning("Duplicate IDs exist in the Custom ID data. No specific labels can therefore be assigned.")
+    return(custom_return)
+  } else{
+    label_df %>% pull(label) %>% return()
+  }
+}
+
+
 apply_custom <- function(df){
   if(customized == FALSE){
     return(df)
   }
   custom_list <- get_custom(path_custom)
-  df <- df %>% mutate(
-    taverne = system_id%in%custom_list$taverne,
-    cris_green = system_id%in%custom_list$cris_green,
-    cris_hybrid = system_id%in%custom_list$cris_hybrid)
+   df <- df %>% mutate(
+     custom_label = custom_label(system_id,custom_list)
+   )
   return(df)
 }
 
 
-# add matches info to the dataframe
+#' add matches info to the dataframe
 apply_matches <- function(df){
   df <- df %>%
     apply_doaj() %>%
@@ -227,17 +265,19 @@ apply_matches <- function(df){
   return(df)
 }
 
-# classify based on the information acquired
-# All publications are classified according to their presence in check lists. In sequence:
-## 1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). 
-##    If the journal matches, the publication is Gold OA
-## 2. match the DOI with a list obtained from VSNU. 
-##    If the journal matches, the publication is Hybrid OA
-## 3. obtain the OA status from Unpaywall. 
-##    If the status is 'gold' or 'bronze', the publication is Hybrid OA
-##    If the status is 'green', the publication is Green OA
-# NB in the classification pipeline these labels will be applied in sequence
-# Thus, e.g. if ISSN matches DOAJ but Unpaywall says 'green', the label will still be Gold OA.
+#' @title Classification of papers
+#' 
+#' classify based on the information acquired
+#' All publications are classified according to their presence in check lists. In sequence:
+#' 1. match the journal ISSN with a list from the Directory of Open Access Journals (DOAJ). 
+#'    If the journal matches, the publication is Gold OA
+#' 2. match the DOI with a list obtained from VSNU. 
+#'    If the journal matches, the publication is Hybrid OA
+#' 3. obtain the OA status from Unpaywall. 
+#'    If the status is 'gold' or 'hybrid', the publication is Hybrid OA
+#'    If the status is 'green', the publication is Green OA
+#' NB in the classification pipeline these labels will be applied in sequence
+#' Thus, e.g. if ISSN matches DOAJ but Unpaywall says 'green', the label will still be Gold OA.
 classify_oa <- function(df){
   df <- df %>%
     apply_matches() %>%
@@ -261,6 +301,39 @@ classify_oa <- function(df){
         upw == "closed" ~ "UPW (closed)",
         TRUE ~ "NONE")
     )
+  save_df(df, "all")
+  return(df)
+}
+
+classify_oa_custom2 <- function(df){
+  custom = T
+  df <- df %>%
+    apply_matches() %>%
+    mutate(
+      OA_label_custom = case_when(
+        doaj ~ "GOLD",
+        vsnu ~ "HYBRID",
+        upw == "bronze" ~ "CLOSED",
+        upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
+        upw == "hybrid" ~ "HYBRID",
+        upw == "green" ~ "GREEN",
+        upw == "closed" ~ "CLOSED",
+        TRUE ~ "CLOSED"),
+      OA_label_explainer_custom = case_when(
+        doaj ~ "DOAJ",
+        vsnu ~ "VSNU",
+        upw == "bronze" ~ "UPW (bronze)",
+        upw == "gold" ~ "UPW (gold)", 
+        upw == "hybrid" ~ "UPW (hybrid)",
+        upw == "green" ~ "UPW (green)",
+        upw == "closed" ~ "UPW (closed)",
+        TRUE ~ "NONE")
+    )
+  if(custom){
+    OA_label_custom = case_when(
+    )
+  }
+  
   save_df(df, "all")
   return(df)
 }
