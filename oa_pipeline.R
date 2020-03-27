@@ -35,6 +35,11 @@ df <- classify_oa(df)
 
 # STEP THREE: REPORT
 source("R/reporting.R")
+reporting <- open_reporting("./config/reports.xlsx")
+individual_reports(reporting)
+
+
+
 
 
 checkthese <- NULL
@@ -55,11 +60,6 @@ df_custom <- classify_oa_custom(df)
 full_report(df_custom) %>% write_csv("output/full_report_custom.csv")
 
 
-oacols <- c("gray88","gold1","chartreuse3","orange3")
-
-p <- ggplot(df_r, aes(x = org_unit, fill=OA_label))
-
-p + geom_bar(stat="prop")
 
 
 
