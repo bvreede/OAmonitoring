@@ -20,7 +20,7 @@ dir.create("data/clean")
 dir.create("output/")
 
 # STEP ONE: OPEN, CLEAN, AND COMBINE THE DATASETS
-allfiles <- read_excel("config/config_pub_files.xlsx")
+allfiles <- read_excel(path_allfiles)
 df <- open_everything(allfiles)
 
 # STEP TWO: APPLY CLASSIFICATION
@@ -39,7 +39,7 @@ df <- classify_oa(df)
 full_report(df)
 
 # generate individual reports for manually made categories
-reporting <- open_reporting_file("./config/reports.xlsx")
+reporting <- open_reporting_file(path_report)
 individual_reports(reporting)
 
 # STEP FOUR: REPORT MANUAL CHECKS
