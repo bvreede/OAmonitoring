@@ -214,7 +214,7 @@ individual_reports <- function(reporting){
 #' 
 #' Go over HOOP areas that were filled out with existing organization units
 #' and generate reports on the areas overall.
-report_hoop <- function(df){
+hoop_report <- function(df){
   hoopfile <- read_ext(path_hoop,dir="")
   for(h in seq_along(hoopfile)){
     name <- colnames(hoopfile)[h]
