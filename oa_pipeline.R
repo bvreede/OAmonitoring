@@ -43,45 +43,5 @@ hoop_report(df)
 reporting <- open_reporting_file(path_report)
 individual_reports(reporting)
 
-
-# STEP FOUR: REPORT MANUAL CHECKS
-
-
-
-
-checkthese <- NULL
-checkthese <- infocheck(df,checkthese)
-
-for(cat in levels(as.factor(df$org_unit))){
-  df_temp <- df %>% filter(org_unit==cat)
-  checkthese <- infocheck(df_temp,checkthese)
-}
-
-checkthese %>% deduplicate() %>% write_csv("output/checkthese.csv")
-
-
-full_report(df) %>% write_csv("output/full_report.csv")
-
-# custom
-df_custom <- classify_oa_custom(df)
-full_report(df_custom) %>% write_csv("output/full_report_custom.csv")
-
-
-
-
-
-
-
-
-
-## Add manual checks
-pure_manual <- mutate(pure_manual,manual=substring(handmatig,1,1)) %>%
-  select(manual,pure_id) %>%
-  filter(manual=="A"|manual=="B"|manual=="C"|manual=="D")
-
-
-# Make a field that indicates whether information is available.
-# Information is available when there is a DOI, or when there is a confirmed VSNU ISSN.
-# Or when OA_STATUS is green, this is likely from Pure info; also counts as available info
-all_pubs <- mutate(all_pubs,
-                   information = OA_label!="CLOSED"|is.na(electronic_version)|!is.na(doi_resolver))
+# STEP FOUR: REPORT NECESSARY MANUAL CHECKS
+check_all(df)
