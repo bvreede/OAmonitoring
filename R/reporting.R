@@ -119,11 +119,11 @@ report_to_dataframe <- function(df){
   return(df_report)
 }
 
-report_image <- function(df,title="title"){
+report_to_image <- function(df,title){
   oacols <- c("gray88","chartreuse3","orange3","gold1")
   outfile <- paste0("output/plot_",title)
-  out_prop <- paste0(outfile,"_prop.png")
-  out_num <- paste0(outfile,"_number.png")
+  out_prop <- paste0(outfile,"_prop_",lubridate::today(),".png")
+  out_num <- paste0(outfile,"_number_",lubridate::today(),".png")
   
   # ensure levels of df are in order: closed/green/hybrid/gold
   df$OA_label <- factor(df$OA_label, levels = c("CLOSED","GREEN","HYBRID","GOLD"))
@@ -153,7 +153,7 @@ report_image <- function(df,title="title"){
   dev.off()
 }
 
-open_reporting <- function(path){
+open_reporting_file <- function(path){
   reporting <- read_excel(path)
   reporting <- reporting[2:ncol(reporting)]
   return(reporting)
@@ -169,17 +169,31 @@ commandline_report <- function(name){
   cat(message)
 }
 
-individual_report <- function(reporting){
+#' Generate a full report
+#' 
+#' Function to generate both a dataset and corresponding
+#' figure, reporting on the classification found
+#' in the data. Requires a name to save the report and figure.
+full_report <- function(df,name="all"){
+  commandline_report(name)
+  name_slug <- str_replace(name," ","_")
+  outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
+  report_to_dataframe(df) %>% write_csv(outfilename)
+  report_to_image(df,name_slug)
+}
+
+#' Generate many individual reports
+#' 
+#' The custom-made reporting sheet is used to
+#' write individual reports and figures for
+#' each set of units in the reporting sheet.
+individual_reports <- function(reporting){
   for(r in seq_along(reporting)){
     name <- colnames(reporting)[r]
-    commandline_report(name)
     col <- pull(reporting, name)
     units <- col[!is.na(col)]
     df_r <- df %>% filter(org_unit%in%units)
-    name_slug <- str_replace(name," ","_")
-    outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
-    report_to_dataframe(df_r) %>% write_csv(outfilename)
-    report_image(df_r,name_slug)
+    full_report(df_r,name)
   }
 }
 
