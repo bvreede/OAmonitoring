@@ -75,6 +75,21 @@ deduplicate <- function(df){
   return(df)
 }
 
+#' Deduplicate a dataframe for each level org_unit
+#' 
+#' Resulting dataframe ensures no duplication exists within
+#' organization units, but duplication remains between.
+deduplicate_per_unit <- function(df){
+  df_dedup <- NULL
+  for(unit in levels(as.factor(df$org_unit))){
+    df_sub <- df %>%
+      filter(org_unit==unit) %>%
+      deduplicate()
+    df_dedup <- bind_rows(df_dedup,df_sub)
+  }
+  return(df_dedup)
+}
+
 ############################### REQUEST CUSTOMIZATION ###############################
 infocheck <- function(df,checkthese){
   df <- deduplicate(df)
@@ -86,33 +101,6 @@ infocheck <- function(df,checkthese){
 }
 
 
-################################### HOOP AREAS #######################################
-
-#' Report for HOOP areas
-#' 
-#' Go over HOOP areas that were filled out with existing organization units
-#' and generate reports on the areas overall.
-report_hoop <- function(df){
-  hoopfile <- read_ext(path_hoop,dir="")
-  for(h in seq_along(hoopfile)){
-    name <- colnames(hoopfile)[h]
-    col <- pull(hoopfile, name)
-    units <- col[!is.na(col)]
-    if(length(units) < 1){next}
-    df <- df %>% mutate(
-      org_unit = case_when(
-        org_unit %in% units ~ name,
-        TRUE ~ org_unit
-      )
-    )
-  }
-  df <- df %>%
-    # remove any remaining org_unit entries that were not replaced
-    filter(org_unit %in% colnames(hoopfile))
-  full_report(df,name="HOOP")
-}
-
-
 ###################################### REPORTING #####################################
 report_to_dataframe <- function(df){
   ## Write a general report for the entire dataset
@@ -120,7 +108,7 @@ report_to_dataframe <- function(df){
     group_by(org_unit, OA_label) %>% 
     summarise(n_papers = n())
   # deduplicate the dataset and score irrespective of org_unit
-  df_all <- df %>% 
+  df_all <- df %>%
     deduplicate() %>% 
     group_by(OA_label) %>% 
     summarise(n_papers = n()) %>% 
@@ -200,6 +188,7 @@ full_report <- function(df,name="all"){
   commandline_report(name)
   name_slug <- str_replace(name," ","_")
   outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
+  df <- deduplicate_per_unit(df)
   report_to_dataframe(df) %>% write_csv(outfilename)
   report_to_image(df,name)
 }
@@ -219,6 +208,31 @@ individual_reports <- function(reporting){
   }
 }
 
+################################### HOOP AREAS #######################################
+
+#' Report for HOOP areas
+#' 
+#' Go over HOOP areas that were filled out with existing organization units
+#' and generate reports on the areas overall.
+hoop_report <- function(df){
+  hoopfile <- read_ext(path_hoop,dir="")
+  for(h in seq_along(hoopfile)){
+    name <- colnames(hoopfile)[h]
+    col <- pull(hoopfile, name)
+    units <- col[!is.na(col)]
+    if(length(units) < 1){next}
+    df <- df %>% mutate(
+      org_unit = case_when(
+        org_unit %in% units ~ name,
+        TRUE ~ org_unit
+      )
+    )
+  }
+  df <- df %>%
+    # remove any remaining org_unit entries that were not replaced
+    filter(org_unit %in% colnames(hoopfile))
+  full_report(df,name="HOOP")
+}
 
 
 
