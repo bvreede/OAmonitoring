@@ -37,10 +37,12 @@ df <- classify_oa(df)
 # STEP THREE: REPORT
 # generate a full report
 full_report(df)
+hoop_report(df)
 
 # generate individual reports for manually made categories
 reporting <- open_reporting_file(path_report)
 individual_reports(reporting)
+
 
 # STEP FOUR: REPORT MANUAL CHECKS
 
