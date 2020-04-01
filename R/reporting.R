@@ -87,16 +87,36 @@ infocheck <- function(df,checkthese){
 
 
 ################################### HOOP AREAS #######################################
-report_hoop <- function(df,path_hoop){
-  
-}
 
+#' Report for HOOP areas
+#' 
+#' Go over HOOP areas that were filled out with existing organization units
+#' and generate reports on the areas overall.
+report_hoop <- function(df){
+  hoopfile <- read_ext(path_hoop,dir="")
+  for(h in seq_along(hoopfile)){
+    name <- colnames(hoopfile)[h]
+    col <- pull(hoopfile, name)
+    units <- col[!is.na(col)]
+    if(length(units) < 1){next}
+    df <- df %>% mutate(
+      org_unit = case_when(
+        org_unit %in% units ~ name,
+        TRUE ~ org_unit
+      )
+    )
+  }
+  df <- df %>%
+    # remove any remaining org_unit entries that were not replaced
+    filter(org_unit %in% colnames(hoopfile))
+  full_report(df,name="HOOP")
+}
 
 
 ###################################### REPORTING #####################################
 report_to_dataframe <- function(df){
   ## Write a general report for the entire dataset
-  df_report <- df %>% 
+  df_report <- df %>%
     group_by(org_unit, OA_label) %>% 
     summarise(n_papers = n())
   # deduplicate the dataset and score irrespective of org_unit
