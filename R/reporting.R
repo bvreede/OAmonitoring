@@ -93,7 +93,7 @@ infocheck <- function(df,checkthese){
   return(checkthese)
 }
 
-full_report <- function(df){
+report_to_dataframe <- function(df){
   ## Write a general report for the entire dataset
   df_report <- df %>% 
     group_by(org_unit, OA_label) %>% 
@@ -169,7 +169,7 @@ commandline_report <- function(name){
   cat(message)
 }
 
-individual_reports <- function(reporting){
+individual_report <- function(reporting){
   for(r in seq_along(reporting)){
     name <- colnames(reporting)[r]
     commandline_report(name)
@@ -178,7 +178,7 @@ individual_reports <- function(reporting){
     df_r <- df %>% filter(org_unit%in%units)
     name_slug <- str_replace(name," ","_")
     outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
-    full_report(df_r) %>% write_csv(outfilename)
+    report_to_dataframe(df_r) %>% write_csv(outfilename)
     report_image(df_r,name_slug)
   }
 }
