@@ -13,6 +13,7 @@ library(testthat)
 source("config/config.R")
 source("R/clean_data.R")
 source("R/classification.R")
+source("R/reporting.R")
 
 # Generate output folders
 dir.create("data/clean")
@@ -34,10 +35,14 @@ upwdf <- upw_pipeline(df)
 df <- classify_oa(df)
 
 # STEP THREE: REPORT
-source("R/reporting.R")
-reporting <- open_reporting("./config/reports.xlsx")
+# generate a full report
+full_report(df)
+
+# generate individual reports for manually made categories
+reporting <- open_reporting_file("./config/reports.xlsx")
 individual_reports(reporting)
 
+# STEP FOUR: REPORT MANUAL CHECKS
 
 
 
