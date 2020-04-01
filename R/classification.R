@@ -189,6 +189,18 @@ apply_matches <- function(df){
 }
 
 ###################################### CUSTOM LABELS ######################################
+apply_custom <- function(df){
+  if(customized == FALSE){
+    return(df)
+  }
+  custom_list <- get_custom(path_custom)
+  df <- df %>% mutate(
+    custom_label = custom_label(system_id,custom_list)
+  )
+  return(df)
+}
+
+
 get_custom <- function(path){
   #TODO confirm that custom path exists
   # get the dataframe with custom IDS
@@ -200,17 +212,6 @@ get_custom <- function(path){
     custom_list[[label]] <- ids
   }
   return(custom_list)
-}
-
-apply_custom <- function(df){
-  if(customized == FALSE){
-    return(df)
-  }
-  custom_list <- get_custom(path_custom)
-  df <- df %>% mutate(
-    custom_label = custom_label(system_id,custom_list)
-  )
-  return(df)
 }
 
 custom_label <- function(column,custom_list){
@@ -302,7 +303,7 @@ classify_oa <- function(df){
 }
 
 classify_oa_custom2 <- function(df){
-  custom = T
+  custom = T #TODO remove this before merge
   df <- df %>%
     apply_matches() %>%
     mutate(
@@ -327,12 +328,20 @@ classify_oa_custom2 <- function(df){
     )
   if(custom){
     df <- df %>%
-      apply_custom
-    OA_label_custom = case_when(
-    )
+      apply_custom() %>%
+      mutate(
+        OA_label_custom = case_when(
+          OA_label_explainer %in% c("UPW (green)","UPW (closed)", "NONE") & !is.na(custom_label) ~ str_to_upper(custom_label),
+          TRUE ~ OA_label
+        ),
+        OA_label_explainer_custom = case_when(
+          OA_label_explainer %in% c("UPW (green)","UPW (closed)", "NONE") & !is.na(custom_label) ~ "CUSTOM",
+          TRUE ~ OA_label_explainer
+        )
+      )
   }
   
-  save_df(df, "all")
+  #save_df(df, "all")
   return(df)
 }
 
