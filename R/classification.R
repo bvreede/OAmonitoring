@@ -302,38 +302,6 @@ classify_oa <- function(df){
   return(df)
 }
 
-classify_oa_custom2 <- function(df){
-  custom = T
-  df <- df %>%
-    apply_matches() %>%
-    mutate(
-      OA_label_custom = case_when(
-        doaj ~ "GOLD",
-        vsnu ~ "HYBRID",
-        upw == "bronze" ~ "CLOSED",
-        upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
-        upw == "hybrid" ~ "HYBRID",
-        upw == "green" ~ "GREEN",
-        upw == "closed" ~ "CLOSED",
-        TRUE ~ "CLOSED"),
-      OA_label_explainer_custom = case_when(
-        doaj ~ "DOAJ",
-        vsnu ~ "VSNU",
-        upw == "bronze" ~ "UPW (bronze)",
-        upw == "gold" ~ "UPW (gold)", 
-        upw == "hybrid" ~ "UPW (hybrid)",
-        upw == "green" ~ "UPW (green)",
-        upw == "closed" ~ "UPW (closed)",
-        TRUE ~ "NONE")
-    )
-  if(custom){
-    OA_label_custom = case_when(
-    )
-  }
-  
-  save_df(df, "all")
-  return(df)
-}
 
 #TODO merge custom and classification
 classify_oa_custom <- function(df){
