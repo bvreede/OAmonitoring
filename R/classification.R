@@ -298,35 +298,9 @@ classify_oa <- function(df){
         upw == "closed" ~ "UPW (closed)",
         TRUE ~ "NONE")
     )
-  save_df(df, "all")
-  return(df)
-}
-
-classify_oa_custom2 <- function(df){
-  custom = T #TODO remove this before merge
-  df <- df %>%
-    apply_matches() %>%
-    mutate(
-      OA_label_custom = case_when(
-        doaj ~ "GOLD",
-        vsnu ~ "HYBRID",
-        upw == "bronze" ~ "CLOSED",
-        upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
-        upw == "hybrid" ~ "HYBRID",
-        upw == "green" ~ "GREEN",
-        upw == "closed" ~ "CLOSED",
-        TRUE ~ "CLOSED"),
-      OA_label_explainer_custom = case_when(
-        doaj ~ "DOAJ",
-        vsnu ~ "VSNU",
-        upw == "bronze" ~ "UPW (bronze)",
-        upw == "gold" ~ "UPW (gold)", 
-        upw == "hybrid" ~ "UPW (hybrid)",
-        upw == "green" ~ "UPW (green)",
-        upw == "closed" ~ "UPW (closed)",
-        TRUE ~ "NONE")
-    )
-  if(custom){
+  
+  # following additions are only done in case customization is required
+  if(customized){
     df <- df %>%
       apply_custom() %>%
       mutate(
@@ -340,42 +314,6 @@ classify_oa_custom2 <- function(df){
         )
       )
   }
-  
-  #save_df(df, "all")
-  return(df)
-}
-
-
-#TODO merge custom and classification
-classify_oa_custom <- function(df){
-  df <- df %>%
-    apply_matches() %>%
-    mutate(
-      OA_label = case_when(
-        doaj ~ "GOLD",
-        vsnu ~ "HYBRID",
-        upw == "bronze" ~ "CLOSED",
-        upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
-        upw == "hybrid" ~ "HYBRID",
-        taverne ~ "GREEN",
-        upw == "green" ~ "GREEN",
-        cris_hybrid ~ "GREEN",
-        cris_green ~ "GREEN",
-        upw == "closed" ~ "CLOSED",
-        TRUE ~ "CLOSED"),
-      OA_label_explainer = case_when(
-        doaj ~ "DOAJ",
-        vsnu ~ "VSNU",
-        upw == "bronze" ~ "UPW (bronze)",
-        upw == "gold" ~ "UPW (gold)", 
-        upw == "hybrid" ~ "UPW (hybrid)",
-        taverne ~ "TAVERNE",
-        upw == "green" ~ "UPW (green)",
-        cris_hybrid ~ "CUSTOM",
-        cris_green ~ "CUSTOM",
-        upw == "closed" ~ "UPW (closed)",
-        TRUE ~ "NONE")
-    )
-  save_df(df, "all_custom")
+  save_df(df, "all")
   return(df)
 }
