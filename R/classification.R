@@ -33,20 +33,19 @@ get_custom <- function(path){
   return(custom_list)
 }
 
+#' Uses unique and NA removal to retrieve
+#' a vector of unique entries in a column.
+#' This is useful when mining an API, trying
+#' to minimize the number of calls.
 extract_uniques <- function(column){
-  #' Uses unique and NA removal to retrieve
-  #' a vector of unique entries in a column.
-  #' This is useful when mining an API, trying
-  #' to minimize the number of calls.
   all_entries <- column %>% unique() %>% remove_na()
   return(all_entries)
 }
 
+#' This function uses an issn to mine the
+#' DOAJ API (at doaj.org/api/v1/).
+#' The entry for this ISSN in the DOAJ is returned.
 doaj_api <- function(issn){
-  #' This function uses an issn to mine the
-  #' DOAJ API (at doaj.org/api/v1/).
-  #' The entry for this ISSN in the DOAJ is returned.
-  #'
   Sys.sleep(0.6) # requests for this api are limited at 2 per second, so the request is slowed down.
   api <- "https://doaj.org/api/v1/search/journals/issn:"
   query <- paste0(api,issn)
@@ -56,9 +55,8 @@ doaj_api <- function(issn){
   return(result_line)
 }
 
-
+#' collecting DOI results from Unpaywall using their REST API
 upw_api <- function(doi,email = email_address){
-  #' collecting DOI results from Unpaywall using their REST API
   print(doi)
   # compile query to send to unpaywall
   api <- "http://api.unpaywall.org/"
@@ -71,14 +69,13 @@ upw_api <- function(doi,email = email_address){
   return(result_line)
 }
 
+#' Using an API mining  function, query all unique
+#' entries in a column, and return a data frame
+#' with their results.
+#' 
+#' @param df
+#' @param which_info What api will be mined? Either "doaj" or "upw" (unpaywall).
 api_to_df <- function(df, which_info){
-  #' Using an API mining  function, query all unique
-  #' entries in a column, and return a data frame
-  #' with their results.
-  #' 
-  #' @param df
-  #' @param which_info What api will be mined? Either "doaj" or "upw" (unpaywall).
-  #' 
   # extract unique values before mining the api
   if(which_info == "doaj"){
     all_entries <- extract_uniques(df$issn)
