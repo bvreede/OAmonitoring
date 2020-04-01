@@ -121,7 +121,8 @@ report_to_dataframe <- function(df){
 
 report_to_image <- function(df,title){
   oacols <- c("gray88","chartreuse3","orange3","gold1")
-  outfile <- paste0("output/plot_",title)
+  title_slug <- str_replace(title," ","_")
+  outfile <- paste0("output/plot_",title_slug)
   out_prop <- paste0(outfile,"_prop_",lubridate::today(),".png")
   out_num <- paste0(outfile,"_number_",lubridate::today(),".png")
   
@@ -179,7 +180,7 @@ full_report <- function(df,name="all"){
   name_slug <- str_replace(name," ","_")
   outfilename <- paste0("./output/report_",name_slug,"_",lubridate::today(),".csv")
   report_to_dataframe(df) %>% write_csv(outfilename)
-  report_to_image(df,name_slug)
+  report_to_image(df,name)
 }
 
 #' Generate many individual reports
