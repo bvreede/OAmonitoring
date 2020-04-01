@@ -40,8 +40,7 @@ full_report(df)
 hoop_report(df)
 
 # generate individual reports for manually made categories
-reporting <- open_reporting_file(path_report)
-individual_reports(reporting)
+individual_reports(path_report)
 
 # STEP FOUR: REPORT NECESSARY MANUAL CHECKS
 check_all(df)

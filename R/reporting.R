@@ -211,7 +211,8 @@ full_report <- function(df,name="all"){
 #' The custom-made reporting sheet is used to
 #' write individual reports and figures for
 #' each set of units in the reporting sheet.
-individual_reports <- function(reporting){
+individual_reports <- function(path_report){
+  reporting <- open_reporting_file(path_report)
   for(r in seq_along(reporting)){
     name <- colnames(reporting)[r]
     col <- pull(reporting, name)
