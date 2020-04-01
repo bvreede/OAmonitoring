@@ -91,6 +91,19 @@ deduplicate_per_unit <- function(df){
 }
 
 ############################### REQUEST CUSTOMIZATION ###############################
+check_all <- function(df){
+  checkthese <- NULL
+  checkthese <- infocheck(df,checkthese)
+  
+  for(cat in levels(as.factor(df$org_unit))){
+    df_temp <- df %>% filter(org_unit==cat)
+    checkthese <- infocheck(df_temp,checkthese)
+  }
+  
+  outname <- paste0("output/check_these_manually_",lubridate::today(),".csv")
+  checkthese %>% deduplicate() %>% write_csv(outname)
+}
+
 infocheck <- function(df,checkthese){
   df <- deduplicate(df)
   f_mis <- sum(df$OA_label_explainer=="NONE")/nrow(df)
