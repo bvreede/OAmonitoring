@@ -304,12 +304,12 @@ classify_oa <- function(df){
     df <- df %>%
       apply_custom() %>%
       mutate(
-        OA_label_custom = case_when(
-          OA_label_explainer %in% c("UPW (green)","UPW (closed)", "NONE") & !is.na(custom_label) ~ str_to_upper(custom_label),
+        OA_label = case_when(
+          OA_label_explainer %in% c("UPW (green)","UPW (closed)", "NONE") & !is.na(custom_label) ~ "GREEN",
           TRUE ~ OA_label
         ),
-        OA_label_explainer_custom = case_when(
-          OA_label_explainer %in% c("UPW (green)","UPW (closed)", "NONE") & !is.na(custom_label) ~ "CUSTOM",
+        OA_label_explainer = case_when(
+          OA_label_explainer %in% c("UPW (green)","UPW (closed)", "NONE") & !is.na(custom_label) ~ paste0("CUSTOM (", custom_label,")"),
           TRUE ~ OA_label_explainer
         )
       )
