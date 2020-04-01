@@ -1,12 +1,4 @@
-#### Step two of the Open Access monitoring pipeline
-#### Cleaned and indexed files are read and interpreted
-#### with this script to write the reports.
-#### Input required from the user: a config
-#### file with the organisation units that need
-#### to be reported on.
-
-
-
+################################## DEDUPLICATION #########################################
 #'@title Report on deduplication effort
 report <- function(nrecords_post,nrecords,method){
   message <- paste("Deduplicating by",
@@ -83,7 +75,7 @@ deduplicate <- function(df){
   return(df)
 }
 
-
+############################### REQUEST CUSTOMIZATION ###############################
 infocheck <- function(df,checkthese){
   df <- deduplicate(df)
   f_mis <- sum(df$OA_label_explainer=="NONE")/nrow(df)
@@ -93,6 +85,15 @@ infocheck <- function(df,checkthese){
   return(checkthese)
 }
 
+
+################################### HOOP AREAS #######################################
+report_hoop <- function(df,path_hoop){
+  
+}
+
+
+
+###################################### REPORTING #####################################
 report_to_dataframe <- function(df){
   ## Write a general report for the entire dataset
   df_report <- df %>% 
