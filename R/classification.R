@@ -1,36 +1,8 @@
-# CLASSIFICATION STEP ONE:
-# OBTAINING INFORMATION:
-# VSNU DEAL 
-# DOAJ REGISTRY
-# UNPAYWALL
-# 
-# 
+############################## GENERIC CLASSIFICATION TOOLS ###############################
 
 remove_na <- function(column){
   column <- column[!is.na(column)]
   return(column)
-}
-
-### VSNU DEAL
-get_vsnu <- function(path){
-  # get all VSNU DOIs
-  vsnu <- read_ext(path, "")
-  vsnu <- vsnu %>% mutate(doi = clean_doi(DOI))
-  return(vsnu)
-}
-
-### CUSTOM LABELS
-get_custom <- function(path){
-  #TODO confirm that custom path exists
-  # get the dataframe with custom IDS
-  custom <- read_ext(path, "")
-  custom_list <- list()
-  customlabels <- colnames(custom)
-  for(label in customlabels){
-    ids <- custom %>% pull(label) %>% remove_na()
-    custom_list[[label]] <- ids
-  }
-  return(custom_list)
 }
 
 #' Uses unique and NA removal to retrieve
@@ -40,6 +12,55 @@ get_custom <- function(path){
 extract_uniques <- function(column){
   all_entries <- column %>% unique() %>% remove_na()
   return(all_entries)
+}
+
+save_df <- function(df, which_info){
+  # remove list columns so the data can be saved
+  df <- df %>% select_if(is.atomic)
+  basename <- case_when(
+    which_info == "doaj" ~ "doaj_from_issn_",
+    which_info == "upw" ~ "upw_from_doi_",
+    which_info == "all" ~ "complete_dataframe_",
+    TRUE ~ "unknown_info_")
+  filename <- paste0("data/clean/", basename, lubridate::today(), ".csv")
+  write_csv(df, filename)
+}
+
+
+####################################### API MINING ######################################
+
+doaj_pipeline <- function(df){
+  if(use_doaj=="api"){
+  df <- df %>% 
+    api_to_df("doaj") %>%
+    process_doaj()
+  save_df(df, "doaj")
+  } else if(use_doaj=="saved"){
+    df <- read_csv(path_doaj)    
+  } else{
+    warning("Not sure what DOAJ data to use.
+Please indicate this in the config.R file, using the option 'api' for use of the DOAJ API,
+or 'saved' to use saved data that was previously mined from the DOAJ API.")
+    stop
+  }
+  return(df)
+}
+
+upw_pipeline <- function(df){
+  if(use_upw=="api"){
+  df <- df %>%
+    api_to_df("upw")
+  save_df(df, "upw")
+  } else if(use_upw=="saved"){
+    df <- read_csv(path_upw) %>%
+      filter(!duplicated(doi)) # just in case any dois are inadvertently duplicated
+  } else{
+    warning("Not sure what Unpaywall data to use.
+Please indicate this in the config.R file, using the option 'api' for use of the Unpaywall API,
+or 'saved' to use saved data that was previously mined from the Unpaywall API.")
+    stop
+  }
+  return(df)
 }
 
 #' This function uses an issn to mine the
@@ -98,6 +119,15 @@ api_to_df <- function(df, which_info){
   return(collectdf)
 }
 
+
+################################# SOURCE PROCESSING ##########################################
+get_vsnu <- function(path){
+  # get all VSNU DOIs
+  vsnu <- read_ext(path, "")
+  vsnu <- vsnu %>% mutate(doi = clean_doi(DOI))
+  return(vsnu)
+}
+
 #' Specifically used to process the data frame
 #' that results from a doaj mining query.
 #' ISSN numbers are in a nested format, 
@@ -114,53 +144,8 @@ process_doaj <- function(df){
   return(df)
 }
 
-save_df <- function(df, which_info){
-  # remove list columns so the data can be saved
-  df <- df %>% select_if(is.atomic)
-  basename <- case_when(
-    which_info == "doaj" ~ "doaj_from_issn_",
-    which_info == "upw" ~ "upw_from_doi_",
-    which_info == "all" ~ "complete_dataframe_",
-    TRUE ~ "unknown_info_")
-  filename <- paste0("data/clean/", basename, lubridate::today(), ".csv")
-  write_csv(df, filename)
-}
 
-doaj_pipeline <- function(df){
-  if(use_doaj=="api"){
-  df <- df %>% 
-    api_to_df("doaj") %>%
-    process_doaj()
-  save_df(df, "doaj")
-  } else if(use_doaj=="saved"){
-    df <- read_csv(path_doaj)    
-  } else{
-    warning("Not sure what DOAJ data to use.
-Please indicate this in the config.R file, using the option 'api' for use of the DOAJ API,
-or 'saved' to use saved data that was previously mined from the DOAJ API.")
-    stop
-  }
-  return(df)
-}
-
-upw_pipeline <- function(df){
-  if(use_upw=="api"){
-  df <- df %>%
-    api_to_df("upw")
-  save_df(df, "upw")
-  } else if(use_upw=="saved"){
-    df <- read_csv(path_upw) %>%
-      filter(!duplicated(doi)) # just in case any dois are inadvertently duplicated
-  } else{
-    warning("Not sure what Unpaywall data to use.
-Please indicate this in the config.R file, using the option 'api' for use of the Unpaywall API,
-or 'saved' to use saved data that was previously mined from the Unpaywall API.")
-    stop
-  }
-  return(df)
-}
-
-
+################################## APPLYING SOURCE TESTS ###################################
 
 apply_upw <- function(df){
   # extract the relevant column from the unpaywall df
@@ -193,6 +178,41 @@ apply_doaj <- function(df){
   return(df)
 }
 
+
+#' add matches info to the dataframe
+apply_matches <- function(df){
+  df <- df %>%
+    apply_doaj() %>%
+    apply_vsnu() %>%
+    apply_upw()
+  return(df)
+}
+
+###################################### CUSTOM LABELS ######################################
+get_custom <- function(path){
+  #TODO confirm that custom path exists
+  # get the dataframe with custom IDS
+  custom <- read_ext(path, "")
+  custom_list <- list()
+  customlabels <- colnames(custom)
+  for(label in customlabels){
+    ids <- custom %>% pull(label) %>% remove_na()
+    custom_list[[label]] <- ids
+  }
+  return(custom_list)
+}
+
+apply_custom <- function(df){
+  if(customized == FALSE){
+    return(df)
+  }
+  custom_list <- get_custom(path_custom)
+  df <- df %>% mutate(
+    custom_label = custom_label(system_id,custom_list)
+  )
+  return(df)
+}
+
 custom_label <- function(column,custom_list){
   nlabels <- custom_list %>% names() %>% length()
   
@@ -204,7 +224,7 @@ custom_label <- function(column,custom_list){
     outlist <- NULL
     for(id in column){
       if(id%in%custom_list[[label]]){
-         outlist <- c(outlist,label)
+        outlist <- c(outlist,label)
       } else{
         outlist <- c(outlist, NA)
       }
@@ -239,28 +259,7 @@ custom_label <- function(column,custom_list){
   }
 }
 
-
-apply_custom <- function(df){
-  if(customized == FALSE){
-    return(df)
-  }
-  custom_list <- get_custom(path_custom)
-   df <- df %>% mutate(
-     custom_label = custom_label(system_id,custom_list)
-   )
-  return(df)
-}
-
-
-#' add matches info to the dataframe
-apply_matches <- function(df){
-  df <- df %>%
-    apply_doaj() %>%
-    apply_vsnu() %>%
-    apply_upw() %>%
-    apply_custom()
-  return(df)
-}
+################################### CLASSIFICATION ######################################
 
 #' @title Classification of papers
 #' 
@@ -298,6 +297,41 @@ classify_oa <- function(df){
         upw == "closed" ~ "UPW (closed)",
         TRUE ~ "NONE")
     )
+  save_df(df, "all")
+  return(df)
+}
+
+classify_oa_custom2 <- function(df){
+  custom = T
+  df <- df %>%
+    apply_matches() %>%
+    mutate(
+      OA_label_custom = case_when(
+        doaj ~ "GOLD",
+        vsnu ~ "HYBRID",
+        upw == "bronze" ~ "CLOSED",
+        upw == "gold" ~ "HYBRID", # indeed, we choose to label gold only confirmed DOAJ ISSN
+        upw == "hybrid" ~ "HYBRID",
+        upw == "green" ~ "GREEN",
+        upw == "closed" ~ "CLOSED",
+        TRUE ~ "CLOSED"),
+      OA_label_explainer_custom = case_when(
+        doaj ~ "DOAJ",
+        vsnu ~ "VSNU",
+        upw == "bronze" ~ "UPW (bronze)",
+        upw == "gold" ~ "UPW (gold)", 
+        upw == "hybrid" ~ "UPW (hybrid)",
+        upw == "green" ~ "UPW (green)",
+        upw == "closed" ~ "UPW (closed)",
+        TRUE ~ "NONE")
+    )
+  if(custom){
+    df <- df %>%
+      apply_custom
+    OA_label_custom = case_when(
+    )
+  }
+  
   save_df(df, "all")
   return(df)
 }
