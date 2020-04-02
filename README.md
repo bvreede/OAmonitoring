@@ -9,7 +9,7 @@ Content: all journals listed on DOAJ and therefore labeled as Full OA
 Result: doaj = TRUE/FALSE
 
 ### VSNU data
-Content: Cumulative list of all OA articles published within the Netherlands (not restricted to Utrecht) as part of the VSNU OA deal, including DOI, publisher and publication year.  
+Content: Cumulative list of all OA articles published within the Netherlands as part of the VSNU OA deal, including DOI, publisher and publication year.  
 Result: vsnu = TRUE/FALSE
 
 ### Unpaywall data
