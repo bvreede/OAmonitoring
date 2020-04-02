@@ -1,3 +1,6 @@
+# Monitoring Open Access from a single year
+This project takes publication data from a single year and determines per article its open access status, using various sources available. It uses peer reviewed journal articles registered in CRIS systems as input.
+
 ## Gathering OA information
 The pipeline harvests OA information from the following sources:
 
