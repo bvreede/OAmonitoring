@@ -1,5 +1,5 @@
 # Monitoring Open Access from a single year
-This project takes publication data from a single year and determines per article its open access status, using various sources available. It uses peer reviewed journal articles registered in CRIS systems as input.
+This project takes publication data from a single year and determines per article its open access status, using various sources available. It uses peer reviewed journal articles registered in CRIS systems as input. It was created in a collaboration between Utrecht University Library and Leiden University Library.
 
 ## Gathering OA information
 The pipeline harvests OA information from the following sources:
@@ -31,22 +31,16 @@ None of the above: CLOSED | NONE
 ## Reporting OA status
 
 The OA status (GOLD/HYBRID/GREEN/CLOSED) is reported regarding three organizational levels:  
-- UU/UMCU total  
+- Universty/University Medical Center total  
 - For each faculty  
 - For each HOOP-gebied (the division of Dutch Higher Education and Research into eight categories: Landbouw (Agriculture), Natuur (Nature), Techniek (Technique), Gezondheid (Health), Gedrag en Maatschappij (Behaviour and Society), Economie (Economics), Recht (Law), Taal en Cultuur (Language and Culture). Each faculty or department is assigned to one HOOP category. 
 
 ## Future or bespoke use of this script
 When re-using this script, adjust the following things:
 
-- At the top of the script, adjust the file paths for your source data (use of a `data` folder is strongly recommended);  
-- Consider that this script was written for two datasets (UU and UMCU); they are labeled as such in the script. If you have a single source file you may need to manually adjust the script to reflect this, however, you can also get in touch if you need a single source file version of this script, and are unable to adjust the script yourself;  
-- Adjust the column names in the section 'renaming columns ...', to reflect those used in your source files.  
 - In the `upw_api` function, adjust the email address to reflect the current user; 
 - In the 'unpaywall' section of 'OA labelling', choose 'api' or 'csv' for the variable `api_csv`, depending on whether you want to load existing unpaywall data ('csv'), or re-run the unpaywall analysis via their api ('api')
 
-
-
 ## Wishlist
 - Test the sources for quality
-- Consider making a table that would allow user to input column names. E.g. title = 'Title of the contribution in original language-2'; this way, that information does not have to be hard coded but can be provided by a user less comfortable in R.
 - What happens if we use the Core db instead of Unpaywall? https://core.ac.uk/services/api/
