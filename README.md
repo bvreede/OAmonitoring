@@ -5,29 +5,16 @@ This project takes publication data from a single year and determines per articl
 The pipeline harvests OA information from the following sources:
 
 ### DOAJ Data
-Source: On SURF Drive, OA Monitoring  
-Date: December 31st 2019  
 Content: all journals listed on DOAJ and therefore labeled as Full OA  
 Result: doaj = TRUE/FALSE
 
 ### VSNU data
-Source: compiled from VSNU OA data on Surfdrive, OA Deals (2016 up until january 2020)  
-Date: March 4th 2019  
 Content: Cumulative list of all OA articles published within the Netherlands (not restricted to Utrecht) as part of the VSNU OA deal, including DOI, publisher and publication year.  
 Result: vsnu = TRUE/FALSE
 
 ### Unpaywall data
 OA status according to Unpaywall, retrieved using their API (http://unpaywall.org/products/api).  
 Result: ups = bronze/closed/doaj/gold/green/hybrid/NA
-
-### OA data in Pure
-Source: data available within UU/UMCU Pure report  
-Date: March 9th 2019  
-Content:  
-Taverne keyword in Pure, used to determine Green OA Status and identify the Taverne share in Green OA.  
-OA Status in Pure and file and file availability in repository. OA status is determined by employees of Utrecht University Library who manually check each publication added to Pure, add the full text and determine if it is OA available (Open/Embargoed/Closed).  
-OA status is at this moment not part of the pipeline but is being used to identify items for the manual check.  
-Result: taverne = TRUE/FALSE
 
 ## Assigning OA labels
 Each item has a OA label assigned based on the OA information harvested in a specific order:
