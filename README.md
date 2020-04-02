@@ -28,20 +28,6 @@ upw=GREEN: GREEN | UPW (GREEN)
 upw=CLOSED: CLOSED | UPW (closed)  
 None of the above: CLOSED | NONE  
 
-## UU specific checks, not part of the pipeline UU Only
-
-
-### OA status and file availability in Pure
-
-taverne=TRUE: GREEN | TAVERNE  
-All items that have OA status = OPEN in Pure and have a file attached in the repository are considered OA available, either Hybrid or Green.  
-cris_green=TRUE: GREEN | CUSTOM  
-
-### Other items
-All other items with the OA label CLOSED | NONE, where these items represent at least 5% of the total number of titles within that organizational unit, are checked for OA availability using a Google / Google Scholar search.  
-1. OA article in journal: HYBRID 
-2. OA article in trusted repository: GREEN
-
 ## Reporting OA status
 
 The OA status (GOLD/HYBRID/GREEN/CLOSED) is reported regarding three organizational levels:  
