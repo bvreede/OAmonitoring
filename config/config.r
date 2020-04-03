@@ -1,7 +1,5 @@
 # PATHS TO INPUT AND CONFIG FILES
 path_vsnu <- "data/mockdata_VSNUdeal.xlsx"
-#path_vsnu <- "data/VSNU_2019_only.xlsx"
-#path_vsnu <- "data/VSNU-cummulatief_WOA20200302.xlsx"
 path_custom <- "data/custom_labels.xlsx"
 path_doaj <- "data/clean/doaj_from_issn_2020-02-27.csv"
 path_upw <- "data/clean/upw_from_doi_2020-02-27.csv"
