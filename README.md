@@ -2,6 +2,35 @@
 
 This project takes publication data from a single year and determines per article its open access status, using various sources available. It uses peer reviewed journal articles registered in CRIS systems as input. It was created in a collaboration between Utrecht University Library and Leiden University Library. Specifics for Utrecht and Leiden can be found in the Wiki.
 
+## Installation instructions
+The program runs in R through Rstudio. Ensure you have both installed:
+1. Install R via [cran.rstudio.com](https://cran.rstudio.com/)
+1. Install Rstudio via [rstudio.com](https://www.rstudio.com/products/rstudio/download/#download)
+
+The following packages are required:
+- tidyverse
+- stringr
+- readxl
+- jsonlite
+- httr
+- magrittr
+- lubridate
+- docstring
+- testthat
+
+You can install them in Rstudio with
+```r
+install.packages("tidyverse")
+install.packages("stringr")
+install.packages("readxl")
+install.packages("jsonlite")
+install.packages("httr")
+install.packages("magrittr")
+install.packages("lubridate")
+install.packages("docstring")
+install.packages("testthat")
+```
+
 ## Your data
 Your data will need to have the following fields to successfully make it through the pipeline:
 - Journal ISSN
