@@ -31,6 +31,12 @@ install.packages("docstring")
 install.packages("testthat")
 ```
 
+## Download and open the project
+1. Download this project [through this zipfile](archive/master.zip).
+1. Unzip the download.
+1. Open `OAmonitoring.rproj`, which will launch Rstudio.
+
+
 ## Your data
 Your data will need to have the following fields to successfully make it through the pipeline:
 - Journal ISSN
