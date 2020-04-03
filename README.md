@@ -32,7 +32,7 @@ install.packages("testthat")
 ```
 
 ## Download and open the project
-1. Download this project [through this zipfile](archive/master.zip).
+1. Download this project [through this zipfile](https://github.com/bvreede/OAmonitoring/archive/master.zip).
 1. Unzip the download.
 1. Open `OAmonitoring.rproj`, which will launch Rstudio.
 
