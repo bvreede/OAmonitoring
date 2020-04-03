@@ -1,32 +1,30 @@
-# Monitoring Open Access from a single year
+# Reporting Open Access output
+
 This project takes publication data from a single year and determines per article its open access status, using various sources available. It uses peer reviewed journal articles registered in CRIS systems as input. It was created in a collaboration between Utrecht University Library and Leiden University Library. Specifics for Utrecht and Leiden can be found in the Wiki.
+
+## Your data
+Your data will need to have the following fields to successfully make it through the pipeline:
+- Journal ISSN
+- paper DOI
+- System ID (a unique ID given by your CRIS)
+- Organization unit (e.g. faculty, department, etc)
+
+NB: The columns may have missing data, but must exist.
 
 ## Gathering OA information
 The pipeline harvests OA information from the following sources:
+- Directory of Open Access Journals, ([DOAJ](http://doaj.org/))
+- [Unpaywall](http://unpaywall.org/)
+- Use of VSNU Open Access publishing deals (an excel sheet with DOIs that is available on request via j.deboer@uu.nl)
 
-### DOAJ Data
-Content: all journals listed on DOAJ and therefore labeled as Full OA  
-Result: doaj = TRUE/FALSE
+## Assigning OA status
+Each paper in your data will get a OA label assigned based on the OA information above, and applied in sequence:
 
-### VSNU data
-Content: Cumulative list of all OA articles published within the Netherlands as part of the VSNU OA deal, including DOI, publisher and publication year.  
-Result: vsnu = TRUE/FALSE
-
-### Unpaywall data
-OA status according to Unpaywall, retrieved using their API (http://unpaywall.org/products/api).  
-Result: ups = bronze/closed/doaj/gold/green/hybrid/NA
-
-## Assigning OA labels
-Each item has a OA label assigned based on the OA information harvested in a specific order:
-
-doaj=TRUE: GOLD | DOAJ  
-vsnu=TRUE: HYBRID | VSNU  
-upw=BRONZE: CLOSED | UPW (bronze)  
-upw=GOLD: HYBRID | UPW (gold)  
-upw=HYBRID: HYBRID | UPW (hybrid)
-upw=GREEN: GREEN | UPW (GREEN)  
-upw=CLOSED: CLOSED | UPW (closed)  
-None of the above: CLOSED | NONE  
+1. Is the journal present in the DOAJ? -> label: GOLD
+1. Is the DOI present in the VSNU list? -> label: HYBRID
+1. Is the DOI classified as gold or hybrid by Unpaywall? -> label: HYBRID
+*1. (Optional: is the system ID present in a custom list supplied by the user? -> label: GREEN)*
+1. Is the DOI classified as green by Unpaywall? -> label: GREEN
 
 ## Reporting OA status
 
@@ -41,6 +39,4 @@ When re-using this script, adjust the following things:
 - In the `upw_api` function, adjust the email address to reflect the current user; 
 - In the 'unpaywall' section of 'OA labelling', choose 'api' or 'csv' for the variable `api_csv`, depending on whether you want to load existing unpaywall data ('csv'), or re-run the unpaywall analysis via their api ('api')
 
-## Wishlist
-- Test the sources for quality
-- What happens if we use the Core db instead of Unpaywall? https://core.ac.uk/services/api/
+
