@@ -126,8 +126,22 @@ report_to_dataframe <- function(df){
     group_by(OA_label) %>% 
     summarise(n_papers = n()) %>% 
     mutate(org_unit = "all")
-  # add the all column to the report
-  df_report <- bind_rows(df_report,df_all)
+  # generate a report for explainer column
+  df_explainer <- df %>%
+    group_by(org_unit, OA_label_explainer) %>%
+    summarise(n_papers = n()) %>%
+    mutate(OA_label = OA_label_explainer) %>%
+    select(-OA_label_explainer)
+  # deduplicate the dataset and score irrespective of org_unit - for explainer
+  df_explainer_all <- df %>%
+    deduplicate() %>% 
+    group_by(OA_label_explainer) %>% 
+    summarise(n_papers = n()) %>% 
+    mutate(org_unit = "all",
+           OA_label = OA_label_explainer) %>%
+    select(-OA_label_explainer)
+  # add all columns to the report
+  df_report <- bind_rows(df_report,df_all,df_explainer,df_explainer_all)
   # transform the data
   df_report <- df_report %>% pivot_wider(names_from=OA_label,values_from=n_papers)
   # add percentages
