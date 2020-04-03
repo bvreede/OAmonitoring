@@ -3,6 +3,8 @@
 This project takes publication data from a single year and determines per article its open access status, using various sources available. It uses peer reviewed journal articles registered in CRIS systems as input. It was created in a collaboration between Utrecht University Library and Leiden University Library. Specifics for Utrecht and Leiden can be found in the Wiki.
 
 ## Installation instructions
+
+### Software and packages required
 The program runs in R through Rstudio. Ensure you have both installed:
 1. Install R via [cran.rstudio.com](https://cran.rstudio.com/)
 1. Install Rstudio via [rstudio.com](https://www.rstudio.com/products/rstudio/download/#download)
@@ -18,7 +20,7 @@ The following packages are required:
 - docstring
 - testthat
 
-You can install them in Rstudio with
+You can install them in Rstudio by running the following in the console:
 ```r
 install.packages("tidyverse")
 install.packages("stringr")
@@ -31,20 +33,37 @@ install.packages("docstring")
 install.packages("testthat")
 ```
 
-## Download and open the project
+### Download and open the project
 1. Download this project [through this zipfile](https://github.com/bvreede/OAmonitoring/archive/master.zip).
 1. Unzip the download.
 1. Open `OAmonitoring.rproj`, which will launch Rstudio.
 
+## Running the Open Access Monitor on your own data
+### Prepare your data
+Multiple data files can be processed together in this pipeline. Formats can be `.xls`, `.xlsx`, `.tsv`, and `.csv`.
 
-## Your data
 Your data will need to have the following fields to successfully make it through the pipeline:
 - Journal ISSN
 - paper DOI
-- System ID (a unique ID given by your CRIS)
+- A unique ID given by your CRIS 
 - Organization unit (e.g. faculty, department, etc)
 
 NB: The columns may have missing data, but must exist.
+
+1. Place your input file(s) in the folder `data`.
+1. Open the file `config_pub_files.xlsx` (in the folder `config`) in Excel.
+1. For each input file, fill out the grid:
+  - Place the file name of an input file in the field 'filename'.
+  - Place the header of each column in the fields below.
+  - NB: Don't forget to remove the examples that are currently present in the file! This configuration file may have only data in the columns that describe your own input data, and must be empty otherwise.
+
+### Prepare the VSNU list
+1. Place the file (available on request) in the folder `data`.
+1. Open the file `config.R` (in the folder `config`). You can do this directly in Rstudio.
+1. Ensure the location of the file and the correct file name are placed behind the variable `path_vsnu`.
+
+
+
 
 ## Gathering OA information
 The pipeline harvests OA information from the following sources:
