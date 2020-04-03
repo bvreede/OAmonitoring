@@ -58,7 +58,8 @@ NB: The columns may have missing data, but must exist. The exception to this is 
   - NB: Don't forget to remove the examples that are currently present in the file! This configuration file may have only data in the columns that describe your own input data, and must be empty otherwise.
 
 ### Prepare the VSNU list
-1. Place the file (available on request) in the folder `data`.
+This is an excel sheet with DOIs of papers published under the OA Publishing deals through the VSNU, that is available on request (contact b.m.i.vreede@uu.nl if you need this list).
+1. Place the file in the folder `data`.
 1. Open the file `config.R` (in the folder `config`). You can do this directly in Rstudio.
 1. Ensure the location of the file and the correct file name are placed behind the variable `path_vsnu`.
 
@@ -69,6 +70,8 @@ NB: The columns may have missing data, but must exist. The exception to this is 
 
 ### Specify the reports
 #### HOOP areas
+Reporting publication output needs to happen for each HOOP-area (this is the division of Dutch Higher Education and Research into eight categories: Landbouw (Agriculture), Natuur (Nature), Techniek (Technique), Gezondheid (Health), Gedrag en Maatschappij (Behaviour and Society), Economie (Economics), Recht (Law), Taal en Cultuur (Language and Culture). Each faculty or department is assigned to one HOOP category. 
+
 You can edit the file `HOOP_areas.xlsx`, in the folder `config`, to contain the names of organization units (e.g. departments or faculties) that are classified under each HOOP area.
 Ensure all names are spelled identical to their appearance in your data.
 (Don't forget to remove the mock data entries here.)
@@ -93,32 +96,18 @@ You can run this item by item by clicking on the green triangle at the top-right
 
 Results of your run will appear in the folder `output`.
 
-## Gathering OA information
+## What data is used, and how?
+### Gathering OA information
 The pipeline harvests OA information from the following sources:
 - Directory of Open Access Journals, ([DOAJ](http://doaj.org/))
 - [Unpaywall](http://unpaywall.org/)
-- Use of VSNU Open Access publishing deals (an excel sheet with DOIs that is available on request via j.deboer@uu.nl)
+- Use of VSNU Open Access publishing deals (an excel sheet available through the VSNU)
 
-## Assigning OA status
+### Assigning OA status
 Each paper in your data will get a OA label assigned based on the OA information above, and applied in sequence:
 
 1. Is the journal present in the DOAJ? -> label: GOLD
 1. Is the DOI present in the VSNU list? -> label: HYBRID
 1. Is the DOI classified as gold or hybrid by Unpaywall? -> label: HYBRID
-*1. (Optional: is the system ID present in a custom list supplied by the user? -> label: GREEN)*
+1. *(Optional: is the system ID present in a custom list supplied by the user? -> label: GREEN)*
 1. Is the DOI classified as green by Unpaywall? -> label: GREEN
-
-## Reporting OA status
-
-The OA status (GOLD/HYBRID/GREEN/CLOSED) is reported regarding three organizational levels:  
-- Universty/University Medical Center total  
-- For each faculty  
-- For each HOOP-gebied (the division of Dutch Higher Education and Research into eight categories: Landbouw (Agriculture), Natuur (Nature), Techniek (Technique), Gezondheid (Health), Gedrag en Maatschappij (Behaviour and Society), Economie (Economics), Recht (Law), Taal en Cultuur (Language and Culture). Each faculty or department is assigned to one HOOP category. 
-
-## Future or bespoke use of this script
-When re-using this script, adjust the following things:
-
-- In the `upw_api` function, adjust the email address to reflect the current user; 
-- In the 'unpaywall' section of 'OA labelling', choose 'api' or 'csv' for the variable `api_csv`, depending on whether you want to load existing unpaywall data ('csv'), or re-run the unpaywall analysis via their api ('api')
-
-
