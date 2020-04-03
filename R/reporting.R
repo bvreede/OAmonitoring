@@ -198,23 +198,28 @@ report_to_alluvial <- function(df){
   
   df_sum <- df %>%
     group_by(org_unit,OA_label,OA_label_explainer) %>%
-    summarise(n_papers = n())
-  
-  # ensure levels of df are in order: closed/green/hybrid/gold
-  df_sum$OA_label <- factor(df_sum$OA_label, levels = c("CLOSED","GREEN","HYBRID","GOLD"))
+    summarise(n_papers = n()) %>%
+    # ensure levels of df are in order: closed/green/hybrid/gold
+    as.data.frame() %>%
+    mutate(
+      OA_label = fct_relevel(OA_label, "CLOSED","GREEN","HYBRID","GOLD"),
+      OA_label_explainer = fct_relevel(OA_label_explainer, "VSNU","DOAJ",after=Inf),
+      OA_label_explainer = fct_relevel(OA_label_explainer,"NONE")
+    )
   
   ggplot(df_sum,
          aes(y = n_papers,
-             axis1 = OA_label_explainer, axis2 = OA_label, axis3 = org_unit)) +
+             axis1 = OA_label_explainer, axis2 = OA_label)) +
     geom_alluvium(aes(fill = OA_label),
                   width = 0, knot.pos = 0, reverse = FALSE) +
     guides(fill = FALSE) +
     geom_stratum(width = 1/8, reverse = FALSE) +
     geom_text(stat = "stratum", infer.label = TRUE, reverse = FALSE) +
-    scale_x_continuous(breaks = 1:3, labels = c("OA Strategy", "OA Status", "Department")) +
-    ggtitle("Open Access publication strategies")+
+    scale_x_continuous(breaks = 1:2, labels = c("OA Strategy", "OA Status")) +
     scale_fill_manual(values = oacols) +
-    theme_bw()
+    theme_bw() +
+    labs(title = "Open Access publication strategies",
+         y = "Number of papers")
 }
 
 
