@@ -52,14 +52,14 @@ upw_pipeline <- function(df){
     api_to_df("upw")
   save_df(df, "upw")
   } else if(use_upw=="saved"){
-    df <- read_csv(path_upw) %>%
-      filter(!duplicated(doi)) # just in case any dois are inadvertently duplicated
+    df <- read_csv(path_upw)
   } else{
     warning("Not sure what Unpaywall data to use.
 Please indicate this in the config.R file, using the option 'api' for use of the Unpaywall API,
 or 'saved' to use saved data that was previously mined from the Unpaywall API.")
     stop
   }
+  df <- df %>% filter(!duplicated(doi)) # just in case any dois are inadvertently duplicated
   return(df)
 }
 
