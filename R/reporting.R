@@ -190,6 +190,32 @@ report_to_image <- function(df,title){
   dev.off()
 }
 
+#' Make an alluvial diagram with the data
+report_to_alluvial <- function(df){
+  oacols <- c("gray88","chartreuse3","orange3","gold1")
+  
+  df_sum <- df %>%
+    group_by(org_unit,OA_label,OA_label_explainer) %>%
+    summarise(n_papers = n())
+  
+  # ensure levels of df are in order: closed/green/hybrid/gold
+  df_sum$OA_label <- factor(df_sum$OA_label, levels = c("CLOSED","GREEN","HYBRID","GOLD"))
+  
+  ggplot(df_sum,
+         aes(y = n_papers,
+             axis1 = OA_label_explainer, axis2 = OA_label, axis3 = org_unit)) +
+    geom_alluvium(aes(fill = OA_label),
+                  width = 0, knot.pos = 0, reverse = FALSE) +
+    guides(fill = FALSE) +
+    geom_stratum(width = 1/8, reverse = FALSE) +
+    geom_text(stat = "stratum", infer.label = TRUE, reverse = FALSE) +
+    scale_x_continuous(breaks = 1:3, labels = c("OA Strategy", "OA Status", "Department")) +
+    ggtitle("Open Access publication strategies")+
+    scale_fill_manual(values = oacols) +
+    theme_bw()
+}
+
+
 open_reporting_file <- function(path){
   reporting <- read_excel(path)
   reporting <- reporting[2:ncol(reporting)]

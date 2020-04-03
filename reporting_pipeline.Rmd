@@ -20,6 +20,7 @@ library(magrittr)
 library(lubridate)
 library(docstring)
 library(testthat)
+library(ggalluvial)
 ```
 
 ```{r}
