@@ -87,6 +87,12 @@ For example: a report for the Faculty of Science would look like this:
 
 All reports can be written up in this file, simply by adding more columns.
 
+### Run the project
+Open `reporting_pipeline.Rmd`, and run the code.
+You can run this item by item by clicking on the green triangle at the top-right corner of every "chunk", or run all at once by clicking the down-arrow next to the button `-> Run`, and selecting `Run All`.
+
+Results of your run will appear in the folder `output`.
+
 ## Gathering OA information
 The pipeline harvests OA information from the following sources:
 - Directory of Open Access Journals, ([DOAJ](http://doaj.org/))
