@@ -58,7 +58,7 @@ read_ext <- function(fn, ext="", dir="data/"){
     }
     rm(df1,df2)
   } else if(ext=="tsv"){
-    df <- read_delim(fn_path,delim="\t")
+    df <- read_delim(fn_path,delim="\t", escape_double = FALSE, trim_ws = TRUE)
   } else if(ext=="xls"|ext=="xlsx"){
     df <- read_excel(fn_path)
   }
