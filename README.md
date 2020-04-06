@@ -57,6 +57,7 @@ The exception to this is the unique internal ID, which must be complete.
   - Place the file name of an input file in the field 'filename'.
   - Place the header of each column that contains the data needed in the fields below.
   - If there is only a single column with ISSN or EISSN, ensure it is placed in the ISSN field.
+  - Indicate in the last field what additional columns you want to retain in the output file. If you want to keep all columns, put 'all'; otherwise make a selection of columns, and separate them with a comma and a space (e.g. `Publisher, Authors`).
   - NB: Don't forget to remove the examples that are currently present in the file! This configuration file may have only data in the columns that describe your own input data, and must be empty otherwise.
 
 ### Prepare the VSNU list
