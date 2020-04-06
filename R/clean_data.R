@@ -1,22 +1,20 @@
 open_everything <- function(allfiles){
   alldata <- list()
-  
-  for(col in allfiles){
+
+  for(col in allfiles[2:length(allfiles)]){
     # extract file name and extension
     fn <- col[allfiles$File_info=="Filename"]
-    fn_ext <- str_split(fn,"\\.")[[1]]
-    
+    fn_ext <- col[allfiles$File_info=="Format (tsv, csv, xls, or xlsx)"]
+    fn_ext <- str_replace(fn_ext,".","")
+
     # test if the column contains NAs; in this case the file will not be read
     if(sum(is.na(col))>0){
       warning("The information for file ", fn, " is not filled out. This file cannot be processed.\n")
       next
     } 
-    # skip filenames without extensions
-    # NB this automatically skips the first column with row names
-    if(length(fn_ext) < 2){
-      if(!fn == allfiles[1,1]){ # this behavior is acceptable with the header.
-        warning("The filename ", fn, " does not have an extension. This file cannot be processed.\n")
-      }
+    # skip filenames without valid extensions
+    if(!fn_ext %in% c("xlsx","xls","csv","tsv")){
+      warning("The filename ", fn, " does not have a valid extension provided. This file cannot be processed.\n")
       next
     }
     
@@ -26,7 +24,6 @@ open_everything <- function(allfiles){
   
   # remove excess variables, bind to dataframe
   df <- bind_rows(alldata)
-  #rm(allfiles,alldata,fn, fn_ext, col)
   
   # check the system IDs for duplicates
   system_id_check(df)
@@ -34,14 +31,13 @@ open_everything <- function(allfiles){
   return(df)
 }
 
-
-
-
-read_ext <- function(fn, dir="data/"){
+read_ext <- function(fn, ext="", dir="data/"){
   # opening a file, with method depending on the extension
   # extract extension and put together filename
+  if(ext == ""){
   fn_ext <- str_split(fn,"\\.")[[1]]
   ext <- fn_ext[-1]
+  }
   fn_path <- paste0(dir,fn)
   
   if(ext == "csv"){ 
@@ -111,9 +107,12 @@ clean_doi <- function(column){
 open_clean <- function(col_config){
   # extract file name
   fn <- col_config[allfiles$File_info=="Filename"]
+  fn_ext <- col[allfiles$File_info=="Format (tsv, csv, xls, or xlsx)"]
+  fn_ext <- str_replace(fn_ext,".","")
   
   # open the file and adjust the column names to the config input
-  df <- read_ext(fn) %>% column_rename(col_config)
+  df <- read_ext(fn,ext=fn_ext) %>% 
+    column_rename(col_config)
   
   # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
   # also add source file column
