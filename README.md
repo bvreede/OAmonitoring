@@ -56,7 +56,7 @@ The exception to this is the unique internal ID, which must be complete.
 1. For each input file, fill out the grid:
   - Place the file name of an input file in the field 'filename'.
   - Place the header of each column that contains the data needed in the fields below.
-  - If there is only a single column with ISSN, enter that column in both the EISSN and ISSN field.
+  - If there is only a single column with ISSN or EISSN, ensure it is placed in the ISSN field.
   - NB: Don't forget to remove the examples that are currently present in the file! This configuration file may have only data in the columns that describe your own input data, and must be empty otherwise.
 
 ### Prepare the VSNU list
