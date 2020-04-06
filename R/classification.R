@@ -101,10 +101,10 @@ api_to_df <- function(df, which_info){
     all_entries <- extract_uniques(c(df$issn,df$eissn))
   }else if(which_info == "upw"){
     all_entries <- extract_uniques(df$doi)
-    
   }
+  
   collect <- list()
-  #TODO add time to cat statement
+  
   cat(paste("Mining the", which_info, "api on",length(all_entries),"items.\n"))
   cat(paste("This will take around",round(length(all_entries)/90,0),"minutes."))
   cat(paste0(" (Current time is ",lubridate::now(),".)\n"))
@@ -113,7 +113,13 @@ api_to_df <- function(df, which_info){
     if(which_info == "doaj"){
       collect[[i]] <- doaj_api(entry)
     } else if(which_info == "upw"){
-      collect[[i]] <- upw_api(entry)
+      tryCatch({
+        collect[[i]] <- upw_api(entry)
+      }, error = function(e){
+        cat(paste0("There is a problem with DOI ",entry,". Pausing briefly, then trying again.\n"))
+        Sys.sleep(2)
+        collect[[i]] <- upw_api(entry)
+      })
     }
   }
   collectdf <- bind_rows(collect)
