@@ -128,7 +128,7 @@ open_clean <- function(col_config){
   
   # what columns to keep?
   col_keep <- col_config[allfiles$File_info=="Other columns to include"]
-  col_keep <- str_replace_all(col_keep," ","") %>% str_split(",") %>% unlist()
+  col_keep <- str_split(col_keep,", ") %>% unlist()
   
   # open the file and adjust the column names to the config input
   df <- read_ext(fn,ext=fn_ext) %>% 
