@@ -48,13 +48,15 @@ Your data will need to have the following columns to successfully make it throug
 - A unique ID (given by your CRIS)
 - Organization unit (e.g. faculty, department, etc)
 
-NB: The columns may have missing data, but must exist. The exception to this is the unique internal ID. 
+NB: The columns may have missing data, but must exist.
+The exception to this is the unique internal ID, which must be complete. 
 
 1. Place your input file(s) in the folder `data`.
 1. Open the file `config_pub_files.xlsx` (in the folder `config`) in Excel.
 1. For each input file, fill out the grid:
   - Place the file name of an input file in the field 'filename'.
   - Place the header of each column that contains the data needed in the fields below.
+  - If there is only a single column with ISSN, enter that column in both the EISSN and ISSN field.
   - NB: Don't forget to remove the examples that are currently present in the file! This configuration file may have only data in the columns that describe your own input data, and must be empty otherwise.
 
 ### Prepare the VSNU list

@@ -1,22 +1,20 @@
 open_everything <- function(allfiles){
   alldata <- list()
-  
-  for(col in allfiles){
+
+  for(col in allfiles[2:length(allfiles)]){
     # extract file name and extension
     fn <- col[allfiles$File_info=="Filename"]
-    fn_ext <- str_split(fn,"\\.")[[1]]
-    
+    fn_ext <- col[allfiles$File_info=="Format (tsv, csv, xls, or xlsx)"]
+    fn_ext <- str_replace(fn_ext,'[:punct:]','')
+
     # test if the column contains NAs; in this case the file will not be read
     if(sum(is.na(col))>0){
       warning("The information for file ", fn, " is not filled out. This file cannot be processed.\n")
       next
     } 
-    # skip filenames without extensions
-    # NB this automatically skips the first column with row names
-    if(length(fn_ext) < 2){
-      if(!fn == allfiles[1,1]){ # this behavior is acceptable with the header.
-        warning("The filename ", fn, " does not have an extension. This file cannot be processed.\n")
-      }
+    # skip filenames without valid extensions
+    if(!fn_ext %in% c("xlsx","xls","csv","tsv")){
+      warning("The filename ", fn, " does not have a valid extension provided. This file cannot be processed.\n")
       next
     }
     
@@ -26,7 +24,6 @@ open_everything <- function(allfiles){
   
   # remove excess variables, bind to dataframe
   df <- bind_rows(alldata)
-  #rm(allfiles,alldata,fn, fn_ext, col)
   
   # check the system IDs for duplicates
   system_id_check(df)
@@ -34,14 +31,13 @@ open_everything <- function(allfiles){
   return(df)
 }
 
-
-
-
-read_ext <- function(fn, dir="data/"){
+read_ext <- function(fn, ext="", dir="data/"){
   # opening a file, with method depending on the extension
   # extract extension and put together filename
+  if(ext == ""){
   fn_ext <- str_split(fn,"\\.")[[1]]
   ext <- fn_ext[-1]
+  }
   fn_path <- paste0(dir,fn)
   
   if(ext == "csv"){ 
@@ -67,13 +63,31 @@ column_rename <- function(data,col_config){
   # rename column names
   id_column <- col_config[allfiles$File_info=="Internal unique identifier"]
   issn_column <- col_config[allfiles$File_info=="ISSN"]
+  eissn_column <- col_config[allfiles$File_info=="EISSN (electronic ISSN)"]
   doi_column <- col_config[allfiles$File_info=="DOI"]
-  org_column <- col_config[allfiles$File_info=="Organization unit"]
+  org_column <- col_config[allfiles$File_info=="Departments and/or faculties"]
   colnames(data)[colnames(data) == id_column] <- "system_id"
   colnames(data)[colnames(data) == issn_column] <- "issn"
+  # if there is no EISSN, generate a column
+  if(!is.na(colnames(data) == eissn_column)){
+    colnames(data)[colnames(data) == eissn_column] <- "eissn"
+  } else{
+      data <- mutate(data, eissn = NA)
+    }
   colnames(data)[colnames(data) == doi_column] <- "doi"
   colnames(data)[colnames(data) == org_column] <- "org_unit"
-  # return cleaned data
+  # return renamed data
+  return(data)
+}
+
+select_columns <- function(data,col_keep){
+  data <- data %>%
+    select(system_id,
+           issn,
+           eissn,
+           doi,
+           org_unit,
+           all_of(col_keep))
   return(data)
 }
 
@@ -99,7 +113,6 @@ clean_issn <- function(column){
   return(column)
 }
 
-
 clean_doi <- function(column){
   column <- str_extract(column,"10\\..+") #ensure only dois are kept, without url information
   column <- str_replace(column,'\\s+','') #remove spaces from DOI
@@ -107,17 +120,25 @@ clean_doi <- function(column){
   column <- str_replace(column,",.+","") #remove duplicate DOIs separated with a comma
 }
 
-
 open_clean <- function(col_config){
   # extract file name
   fn <- col_config[allfiles$File_info=="Filename"]
+  fn_ext <- col_config[allfiles$File_info=="Format (tsv, csv, xls, or xlsx)"]
+  fn_ext <- str_replace(fn_ext,'[:punct:]','')
+  
+  # what columns to keep?
+  col_keep <- col_config[allfiles$File_info=="Other columns to include"]
+  col_keep <- str_split(col_keep,", ") %>% unlist()
   
   # open the file and adjust the column names to the config input
-  df <- read_ext(fn) %>% column_rename(col_config)
+  df <- read_ext(fn,ext=fn_ext) %>% 
+    column_rename(col_config) %>%
+    select_columns(col_keep)
   
   # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
   # also add source file column
   df <- df %>% mutate(issn = clean_issn(issn),
+                      eissn = clean_issn(eissn),
                       doi = clean_doi(doi),
                       source = fn)
   
@@ -144,7 +165,8 @@ system_id_check <- function(df){
   if(length(duplicates) > 0){
     df %>% filter(system_id%in%duplicates) %>%
       write_csv("output/confirm_duplicate_IDs.csv")
-    warning("Duplicate IDs exist between different imported datasets.
+    warning("
+  Duplicate IDs exist between different imported datasets.
   Please ensure that these refer to the same files.
   For your convenience, all lines corresponding to duplicate IDs are saved in output/confirm_duplicate_IDs.csv")
   }
