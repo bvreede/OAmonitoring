@@ -78,7 +78,6 @@ doaj_api <- function(issn){
 
 #' collecting DOI results from Unpaywall using their REST API
 upw_api <- function(doi,email = email_address){
-  print(doi)
   # compile query to send to unpaywall
   api <- "http://api.unpaywall.org/"
   email <- paste("?email=",email,sep="") 
@@ -106,7 +105,7 @@ api_to_df <- function(df, which_info){
   }
   collect <- list()
   #TODO add time to cat statement
-  cat(paste("Mining the", which_info, "api...\n"))
+  cat(paste("Mining the", which_info, "api on ",length(all_entries)," items.\n"))
   for(i in seq_along(all_entries)){
     entry <- all_entries[i]
     if(which_info == "doaj"){
