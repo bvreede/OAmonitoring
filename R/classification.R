@@ -106,8 +106,8 @@ api_to_df <- function(df, which_info){
   collect <- list()
   #TODO add time to cat statement
   cat(paste("Mining the", which_info, "api on",length(all_entries),"items.\n"))
-  cat(paste("This may take up to",length(all_entries)/90,"minutes."))
-  cat(paste("(Current time is",lubridate::now(),".\n"))
+  cat(paste("This will take around",round(length(all_entries)/90,0),"minutes."))
+  cat(paste(" (Current time is",lubridate::now(),".)\n"))
   for(i in seq_along(all_entries)){
     entry <- all_entries[i]
     if(which_info == "doaj"){
@@ -117,6 +117,7 @@ api_to_df <- function(df, which_info){
     }
   }
   collectdf <- bind_rows(collect)
+  cat("Done mining the",which_info,"api at",lubridate::now(),".\n")
   return(collectdf)
 }
 
