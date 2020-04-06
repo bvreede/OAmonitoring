@@ -99,7 +99,7 @@ upw_api <- function(doi,email = email_address){
 api_to_df <- function(df, which_info){
   # extract unique values before mining the api
   if(which_info == "doaj"){
-    all_entries <- extract_uniques(df$issn)
+    all_entries <- extract_uniques(c(df$issn,df$eissn))
   }else if(which_info == "upw"){
     all_entries <- extract_uniques(df$doi)
     
@@ -174,10 +174,9 @@ apply_doaj <- function(df){
   # match issns with their existence in DOAJ
   doaj_issn_strip <- remove_na(doajdf$issn)
   df <- df %>% mutate(
-    doaj = issn%in%doaj_issn_strip)
+    doaj = issn%in%doaj_issn_strip|eissn%in%doaj_issn_strip)
   return(df)
 }
-
 
 #' add matches info to the dataframe
 apply_matches <- function(df){
