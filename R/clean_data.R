@@ -5,7 +5,7 @@ open_everything <- function(allfiles){
     # extract file name and extension
     fn <- col[allfiles$File_info=="Filename"]
     fn_ext <- col[allfiles$File_info=="Format (tsv, csv, xls, or xlsx)"]
-    fn_ext <- str_replace(fn_ext,".","")
+    fn_ext <- str_replace(fn_ext,'[:punct:]','')
 
     # test if the column contains NAs; in this case the file will not be read
     if(sum(is.na(col))>0){
@@ -80,6 +80,17 @@ column_rename <- function(data,col_config){
   return(data)
 }
 
+select_columns <- function(data,col_keep){
+  data <- data %>%
+    select(system_id,
+           issn,
+           eissn,
+           doi,
+           org_unit,
+           all_of(col_keep))
+  return(data)
+}
+
 number_to_issn <- function(number){
   # ensure ISSN has two elements, with a hyphen in between
   if(is.na(number)){
@@ -102,7 +113,6 @@ clean_issn <- function(column){
   return(column)
 }
 
-
 clean_doi <- function(column){
   column <- str_extract(column,"10\\..+") #ensure only dois are kept, without url information
   column <- str_replace(column,'\\s+','') #remove spaces from DOI
@@ -110,16 +120,20 @@ clean_doi <- function(column){
   column <- str_replace(column,",.+","") #remove duplicate DOIs separated with a comma
 }
 
-
 open_clean <- function(col_config){
   # extract file name
   fn <- col_config[allfiles$File_info=="Filename"]
-  fn_ext <- col[allfiles$File_info=="Format (tsv, csv, xls, or xlsx)"]
-  fn_ext <- str_replace(fn_ext,".","")
+  fn_ext <- col_config[allfiles$File_info=="Format (tsv, csv, xls, or xlsx)"]
+  fn_ext <- str_replace(fn_ext,'[:punct:]','')
+  
+  # what columns to keep?
+  col_keep <- col_config[allfiles$File_info=="Other columns to include"]
+  col_keep <- str_replace_all(col_keep," ","") %>% str_split(",") %>% unlist()
   
   # open the file and adjust the column names to the config input
   df <- read_ext(fn,ext=fn_ext) %>% 
-    column_rename(col_config)
+    column_rename(col_config) %>%
+    select_columns(col_keep)
   
   # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
   # also add source file column
@@ -151,7 +165,8 @@ system_id_check <- function(df){
   if(length(duplicates) > 0){
     df %>% filter(system_id%in%duplicates) %>%
       write_csv("output/confirm_duplicate_IDs.csv")
-    warning("Duplicate IDs exist between different imported datasets.
+    warning("
+  Duplicate IDs exist between different imported datasets.
   Please ensure that these refer to the same files.
   For your convenience, all lines corresponding to duplicate IDs are saved in output/confirm_duplicate_IDs.csv")
   }
