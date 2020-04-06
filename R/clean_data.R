@@ -8,7 +8,7 @@ open_everything <- function(allfiles){
     fn_ext <- str_replace(fn_ext,'[:punct:]','')
 
     # test if the column contains NAs; in this case the file will not be read
-    if(sum(is.na(col))>0){
+    if(sum(is.na(col))>1){
       warning("The information for file ", fn, " is not filled out. This file cannot be processed.\n")
       next
     } 
@@ -138,8 +138,12 @@ open_clean <- function(col_config){
   
   # open the file and adjust the column names to the config input
   df <- read_ext(fn,ext=fn_ext) %>% 
-    column_rename(col_config) %>%
-    select_columns(col_keep)
+    column_rename(col_config)
+  
+  # reduce number of columns, except when the user wants to keep all
+  if(!col_keep=="all"){
+    df <- select_columns(df, col_keep)
+  }
   
   # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
   # also add source file column
