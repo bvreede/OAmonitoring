@@ -38,7 +38,13 @@ read_ext <- function(fn, ext="", dir="data/"){
   fn_ext <- str_split(fn,"\\.")[[1]]
   ext <- fn_ext[-1]
   }
-  fn_path <- paste0(dir,fn)
+  
+  # only paste on the data directory if the path itself does not exist
+  if(file.exists(fn)){
+    fn_path <- fn
+  } else{
+    fn_path <- paste0(dir,fn)
+  }
   
   if(ext == "csv"){ 
     # multiple methods are possible, check which one yields the largest no. of columns
