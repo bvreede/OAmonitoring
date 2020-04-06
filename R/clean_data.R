@@ -63,13 +63,20 @@ column_rename <- function(data,col_config){
   # rename column names
   id_column <- col_config[allfiles$File_info=="Internal unique identifier"]
   issn_column <- col_config[allfiles$File_info=="ISSN"]
+  eissn_column <- col_config[allfiles$File_info=="EISSN (electronic ISSN)"]
   doi_column <- col_config[allfiles$File_info=="DOI"]
-  org_column <- col_config[allfiles$File_info=="Organization unit"]
+  org_column <- col_config[allfiles$File_info=="Departments and/or faculties"]
   colnames(data)[colnames(data) == id_column] <- "system_id"
   colnames(data)[colnames(data) == issn_column] <- "issn"
+  # if there is no EISSN, generate a column
+  if(!is.na(colnames(data) == eissn_column)){
+    colnames(data)[colnames(data) == eissn_column] <- "eissn"
+  } else{
+      data <- mutate(data, eissn = NA)
+    }
   colnames(data)[colnames(data) == doi_column] <- "doi"
   colnames(data)[colnames(data) == org_column] <- "org_unit"
-  # return cleaned data
+  # return renamed data
   return(data)
 }
 
@@ -117,6 +124,7 @@ open_clean <- function(col_config){
   # clean DOI and ISSN, remove spaces and hyperlinks, change uppercase to lowercase etc.
   # also add source file column
   df <- df %>% mutate(issn = clean_issn(issn),
+                      eissn = clean_issn(eissn),
                       doi = clean_doi(doi),
                       source = fn)
   
