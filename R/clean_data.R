@@ -82,6 +82,10 @@ column_rename <- function(data,col_config){
     }
   colnames(data)[colnames(data) == doi_column] <- "doi"
   colnames(data)[colnames(data) == org_column] <- "org_unit"
+  
+  # turn system ID column into character
+  data <- data %>% mutate(system_id = as.character(system_id))
+  
   # return renamed data
   return(data)
 }
