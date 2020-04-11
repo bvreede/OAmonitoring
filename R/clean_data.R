@@ -125,7 +125,7 @@ clean_issn <- function(column){
 
 clean_doi <- function(column){
   column <- str_extract(column,"10\\..+") #ensure only dois are kept, without url information
-  column <- str_replace(column,'\\s+','') #remove spaces from DOI
+  column <- str_replace_all(column,'\\s+','') #remove spaces from DOI
   column <- tolower(column) #Change DOI to lowercase only
   column <- str_replace(column,",.+","") #remove duplicate DOIs separated with a comma
 }
