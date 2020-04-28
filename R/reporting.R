@@ -113,6 +113,19 @@ infocheck <- function(df,checkthese){
   return(checkthese)
 }
 
+#################################### DATA REFORMATTING FOR REPORT ###########################
+get_first_word <- function(sentence){
+  words <- str_split(sentence, " ")
+  first_word <- words[[1]][1]
+  return(first_word)
+}
+
+reduce_categories <- function(df){
+  df <- df %>% mutate(
+    OA_label_explainer_short = mapply(get_first_word,OA_label_explainer)
+  )
+  return(df)
+}
 
 ###################################### REPORTING #####################################
 report_to_dataframe <- function(df){
@@ -157,6 +170,9 @@ report_to_dataframe <- function(df){
   return(df_report)
 }
 
+
+##################################### IMAGING ###############################################
+
 report_to_image <- function(df,title){
   oacols <- c("gray88","chartreuse3","orange3","gold1")
   title_slug <- str_replace(title," ","_")
@@ -170,7 +186,7 @@ report_to_image <- function(df,title){
   p <- ggplot(df, aes(x = org_unit, fill = OA_label)) +
     scale_fill_manual(values = oacols) +
     theme_bw() +
-    labs(title = title,
+    labs(title = paste("Accessibility for",title,"publications"),
       x = "",
       fill = "Access type") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
@@ -197,19 +213,20 @@ report_to_alluvial <- function(df){
   oacols <- c("gray88","chartreuse3","orange3","gold1")
   
   df_sum <- df %>%
-    group_by(org_unit,OA_label,OA_label_explainer) %>%
+    reduce_categories() %>%
+    group_by(org_unit,OA_label,OA_label_explainer_short) %>%
     summarise(n_papers = n()) %>%
     # ensure levels of df are in order: closed/green/hybrid/gold
     as.data.frame() %>%
     mutate(
       OA_label = fct_relevel(OA_label, "CLOSED","GREEN","HYBRID","GOLD"),
-      OA_label_explainer = fct_relevel(OA_label_explainer, "VSNU","DOAJ",after=Inf),
-      OA_label_explainer = fct_relevel(OA_label_explainer,"NONE")
+      OA_label_explainer_short = fct_relevel(OA_label_explainer_short, "VSNU","DOAJ",after=Inf),
+      OA_label_explainer_short = fct_relevel(OA_label_explainer_short,"NONE")
     )
   
-  ggplot(df_sum,
+  plt_alluv <- ggplot(df_sum,
          aes(y = n_papers,
-             axis1 = OA_label_explainer, axis2 = OA_label)) +
+             axis1 = OA_label_explainer_short, axis2 = OA_label)) +
     geom_alluvium(aes(fill = OA_label),
                   width = 0, knot.pos = 0, reverse = FALSE) +
     guides(fill = FALSE) +
@@ -220,6 +237,9 @@ report_to_alluvial <- function(df){
     theme_bw() +
     labs(title = "Open Access publication strategies",
          y = "Number of papers")
+  
+  ggsave(filename = "output/alluvial.png", plot = plt_alluv, device=png())
+  dev.off()
 }
 
 
