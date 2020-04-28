@@ -274,6 +274,7 @@ full_report <- function(df,name="all"){
   df <- deduplicate_per_unit(df)
   report_to_dataframe(df) %>% write_csv(outfilename)
   report_to_image(df,name)
+  report_to_alluvial(df,name)
 }
 
 #' Generate many individual reports
