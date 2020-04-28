@@ -213,10 +213,11 @@ report_to_alluvial <- function(df,name){
   oacols <- c("gray88","chartreuse3","orange3","gold1")
   
   title_slug <- str_replace(name," ","_")
-  outfile <- paste0("output/alluvial_",title_slug,lubridate::today(),".png")
+  outfile <- paste0("output/alluvial_",title_slug,"_",lubridate::today(),".png")
   
   df_sum <- df %>%
     reduce_categories() %>%
+    deduplicate() %>%
     group_by(org_unit,OA_label,OA_label_explainer_short) %>%
     summarise(n_papers = n()) %>%
     # ensure levels of df are in order: closed/green/hybrid/gold
