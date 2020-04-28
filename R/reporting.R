@@ -113,6 +113,19 @@ infocheck <- function(df,checkthese){
   return(checkthese)
 }
 
+#################################### DATA REFORMATTING FOR REPORT ###########################
+get_first_word <- function(sentence){
+  words <- str_split(sentence, " ")
+  first_word <- words[[1]][1]
+  return(first_word)
+}
+
+reduce_categories <- function(df){
+  df <- df %>% mutate(
+    OA_label_explainer_short = mapply(get_first_word,OA_label_explainer)
+  )
+  return(df)
+}
 
 ###################################### REPORTING #####################################
 report_to_dataframe <- function(df){
@@ -126,7 +139,7 @@ report_to_dataframe <- function(df){
     group_by(OA_label) %>% 
     summarise(n_papers = n()) %>% 
     mutate(org_unit = "all")
-  # add the all column to the report
+  # add all columns to the report
   df_report <- bind_rows(df_report,df_all)
   # transform the data
   df_report <- df_report %>% pivot_wider(names_from=OA_label,values_from=n_papers)
@@ -138,8 +151,27 @@ report_to_dataframe <- function(df){
     green_percent = round(GREEN/Total_papers*100,1),
     total_OA_percent = round((1 - CLOSED/Total_papers)*100,1)
   )
+  # generate a report for explainer column
+  df_explainer <- df %>%
+    group_by(org_unit, OA_label_explainer) %>%
+    summarise(n_papers = n())
+  # deduplicate the dataset and score irrespective of org_unit - for explainer
+  df_explainer_all <- df %>%
+    deduplicate() %>% 
+    group_by(OA_label_explainer) %>% 
+    summarise(n_papers = n()) %>% 
+    mutate(org_unit = "all")
+  # combine to single dataframe
+  df_report_explainer <- bind_rows(df_explainer,df_explainer_all)
+  # transform the data
+  df_report_explainer <- df_report_explainer %>% pivot_wider(names_from=OA_label_explainer,values_from=n_papers)
+  # join both reports
+  df_report <- left_join(df_report,df_report_explainer,by="org_unit")
   return(df_report)
 }
+
+
+##################################### IMAGING ###############################################
 
 report_to_image <- function(df,title){
   oacols <- c("gray88","chartreuse3","orange3","gold1")
@@ -154,7 +186,7 @@ report_to_image <- function(df,title){
   p <- ggplot(df, aes(x = org_unit, fill = OA_label)) +
     scale_fill_manual(values = oacols) +
     theme_bw() +
-    labs(title = title,
+    labs(title = paste("Accessibility for",title,"publications"),
       x = "",
       fill = "Access type") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
@@ -175,6 +207,44 @@ report_to_image <- function(df,title){
   ggsave(filename = out_num, plot = plot_num, device=png())
   dev.off()
 }
+
+#' Make an alluvial diagram with the data
+report_to_alluvial <- function(df,name){
+  oacols <- c("gray88","chartreuse3","orange3","gold1")
+  
+  title_slug <- str_replace(name," ","_")
+  outfile <- paste0("output/alluvial_",title_slug,lubridate::today(),".png")
+  
+  df_sum <- df %>%
+    reduce_categories() %>%
+    group_by(org_unit,OA_label,OA_label_explainer_short) %>%
+    summarise(n_papers = n()) %>%
+    # ensure levels of df are in order: closed/green/hybrid/gold
+    as.data.frame() %>%
+    mutate(
+      OA_label = fct_relevel(OA_label, "CLOSED","GREEN","HYBRID","GOLD"),
+      OA_label_explainer_short = fct_relevel(OA_label_explainer_short, "VSNU","DOAJ",after=Inf),
+      OA_label_explainer_short = fct_relevel(OA_label_explainer_short,"NONE")
+    )
+  
+  plt_alluv <- ggplot(df_sum,
+         aes(y = n_papers,
+             axis1 = OA_label_explainer_short, axis2 = OA_label)) +
+    geom_alluvium(aes(fill = OA_label),
+                  width = 0, knot.pos = 0, reverse = FALSE) +
+    guides(fill = FALSE) +
+    geom_stratum(width = 1/8, reverse = FALSE) +
+    geom_text(stat = "stratum", infer.label = TRUE, reverse = FALSE) +
+    scale_x_continuous(breaks = 1:2, labels = c("OA Strategy", "OA Status")) +
+    scale_fill_manual(values = oacols) +
+    theme_bw() +
+    labs(title = paste("Open Access publication strategies for", name),
+         y = "Number of papers")
+  
+  ggsave(filename = outfile, plot = plt_alluv, device=png())
+  dev.off()
+}
+
 
 open_reporting_file <- function(path){
   reporting <- read_excel(path)
@@ -204,6 +274,7 @@ full_report <- function(df,name="all"){
   df <- deduplicate_per_unit(df)
   report_to_dataframe(df) %>% write_csv(outfilename)
   report_to_image(df,name)
+  report_to_alluvial(df,name)
 }
 
 #' Generate many individual reports
