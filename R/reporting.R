@@ -209,8 +209,11 @@ report_to_image <- function(df,title){
 }
 
 #' Make an alluvial diagram with the data
-report_to_alluvial <- function(df){
+report_to_alluvial <- function(df,name){
   oacols <- c("gray88","chartreuse3","orange3","gold1")
+  
+  title_slug <- str_replace(name," ","_")
+  outfile <- paste0("output/alluvial_",title_slug,lubridate::today(),".png")
   
   df_sum <- df %>%
     reduce_categories() %>%
@@ -235,10 +238,10 @@ report_to_alluvial <- function(df){
     scale_x_continuous(breaks = 1:2, labels = c("OA Strategy", "OA Status")) +
     scale_fill_manual(values = oacols) +
     theme_bw() +
-    labs(title = "Open Access publication strategies",
+    labs(title = paste("Open Access publication strategies for", name),
          y = "Number of papers")
   
-  ggsave(filename = "output/alluvial.png", plot = plt_alluv, device=png())
+  ggsave(filename = outfile, plot = plt_alluv, device=png())
   dev.off()
 }
 
